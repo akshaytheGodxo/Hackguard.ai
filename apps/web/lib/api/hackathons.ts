@@ -1,4 +1,5 @@
 export type HackathonStatus = "Live" | "Upcoming" | "Completed"
+export type HackathonType = "standard" | "live"
 
 export type TeamMember = {
   name: string
@@ -21,6 +22,7 @@ export type Hackathon = {
   submissions: number
   description: string
   organizer: string
+  type: HackathonType
 }
 
 export function formatHackathonDate(value: string | Date): string {

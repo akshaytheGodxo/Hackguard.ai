@@ -73,8 +73,9 @@ export async function hostHackathon(formData: FormData): Promise<ActionResult> {
   const name = String(formData.get("name") ?? "").trim()
   const date = String(formData.get("date") ?? "")
   const description = String(formData.get("description") ?? "").trim()
-
+  const type = String(formData.get("type") ?? "").trim()
   if (!name || !date || !description) return { error: "All fields are required." }
+  if (type !== "standard" && type !== "live") return { error: "Choose a hackathon type." }
 
   const parsed = new Date(`${date}T09:00:00`)
   if (Number.isNaN(parsed.getTime())) return { error: "Pick a valid start date." }
@@ -85,6 +86,7 @@ export async function hostHackathon(formData: FormData): Promise<ActionResult> {
       date: parsed,
       description,
       status: "Upcoming",
+      type,
       organizerId: session.userId,
     },
   })

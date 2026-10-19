@@ -7,9 +7,21 @@ import { Field } from "@base-ui/react/field"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { 
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue } from "@/components/ui/select"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { hostHackathon } from "@/lib/actions"
 import type { SessionView } from "@/lib/auth/session"
+
+const items = [
+  {label: "Standard", value: "standard"},
+  {label: "Live 1vs1", value: "live"}
+]
 
 export function HostHackathonForm({ session }: { session: SessionView }) {
   const [error, setError] = useState<string | null>(null)
@@ -21,8 +33,8 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
     const name = String(data.get("name") ?? "").trim()
     const date = String(data.get("date") ?? "")
     const description = String(data.get("description") ?? "").trim()
-
-    if (!name || !date || !description) return
+    const type = String(data.get("type")??"").trim()
+    if (!name || !date || !description || !type) return
 
     startTransition(async () => {
       const result = await hostHackathon(data)
@@ -66,17 +78,34 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
             />
           </Field.Root>
 
-          <Field.Root className="auth-field">
-            <Label className="text-[11px] font-semibold text-[var(--hg-text)]">Start date</Label>
-            <Input
-              type="date"
-              name="date"
-              required
-              className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark]"
-            />
-          </Field.Root>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Field.Root className="flex flex-col gap-1.5">
+              <Label className="text-[11px] font-semibold text-[var(--hg-text)]">Start date</Label>
+              <Input
+                type="date"
+                name="date"
+                required
+                className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark]"
+              />
+            </Field.Root>
+            <Field.Root className="flex flex-col gap-1.5">
+              <Label className="text-[11px] font-semibold text-[var(--hg-text)]">Hackathon Type</Label>
+              <Select items={items} name="type">
+                <SelectTrigger className="h-10 w-full rounded-md border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[13px] text-[var(--hg-text)] data-placeholder:text-[var(--hg-dim)]">
+                  <SelectValue placeholder="Choose your type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {items.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field.Root>
+          </div>
 
-          <Field.Root className="auth-field">
+          <Field.Root className="auth-field mt-4">
             <Label className="text-[11px] font-semibold text-[var(--hg-text)]">
               Description
             </Label>

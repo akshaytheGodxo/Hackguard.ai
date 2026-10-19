@@ -41,6 +41,7 @@ async function main() {
     participants: number
     submissions: number
     organizerId: string
+    type?: "standard" | "live"
   }) {
     const existing = await prisma.hackathon.findFirst({ where: { name: input.name } })
     if (existing) return existing
@@ -75,6 +76,17 @@ async function main() {
     participants: 96,
     submissions: 87,
     organizerId: team.id,
+  })
+
+  await upsertHackathon({
+    name: "Arena Clash 1v1",
+    date: new Date("2026-10-19T18:00:00"),
+    description: "Head-to-head live coding battles — one round, one winner.",
+    status: "Live",
+    participants: 42,
+    submissions: 12,
+    organizerId: team.id,
+    type: "live",
   })
 
   const existingRegistration = await prisma.registration.findFirst({

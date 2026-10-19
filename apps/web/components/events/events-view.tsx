@@ -16,6 +16,41 @@ const statusStyles: Record<string, string> = {
   Completed: "bg-white/5 text-[var(--hg-dim)] border-white/10",
 }
 
+
+function LiveCodingCard({ hackathon }: { hackathon: Hackathon }) {
+  return (
+    <article className="flex flex-col rounded-xl border border-[var(--hg-border)] bg-[var(--hg-surface)] p-5 transition-colors hover:border-[var(--hg-cyan)]/40">
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="text-[15px] font-semibold text-[var(--hg-text)]">
+          {hackathon.name}
+        </h2>
+        <span
+          className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusStyles[hackathon.status]}`}
+        >
+          {hackathon.status}
+        </span>
+      </div>
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <div className="flex gap-4 text-[12px] text-[var(--hg-muted)]">
+          <span>
+            <strong className="text-[var(--hg-text)]">{hackathon.participants}</strong> participants
+          </span>
+          <span>
+            <strong className="text-[var(--hg-text)]">{hackathon.submissions}</strong> submissions
+          </span>
+        </div>
+        
+        <Link
+          href={`/rooms/${hackathon.id}`}
+          className="shrink-0 rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-[11px] font-semibold text-red-400 transition-colors hover:bg-red-500/20"
+        >
+          Join
+        </Link>
+      </div>
+    </article>
+  )
+}
+
 function HackathonCard({
   hackathon,
   registration,
@@ -83,6 +118,8 @@ function HackathonCard({
   )
 }
 
+
+
 export function EventsView({
   session,
   hackathons,
@@ -103,7 +140,6 @@ export function EventsView({
       router.refresh()
     })
   }
-
   return (
     <main className="hg-fade-in min-h-screen bg-[var(--hg-bg)]">
       <DashboardHeader session={session} />
@@ -116,24 +152,28 @@ export function EventsView({
         <p className="mt-1 text-[13px] text-[var(--hg-muted)]">
           Browse open hackathons and register to start competing.
         </p>
-
+        
         {hackathons.length === 0 ? (
           <div className="mt-10 rounded-xl border border-dashed border-[var(--hg-border)] px-6 py-14 text-center text-[13px] text-[var(--hg-dim)]">
             No hackathons available yet.
           </div>
         ) : (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {hackathons.map((hackathon) => (
-              <HackathonCard
-                key={hackathon.id}
-                hackathon={hackathon}
-                registration={registrations.find(
-                  (registration) => registration.hackathonId === hackathon.id,
-                )}
-                onRegister={() => setRegistering(hackathon)}
-                onUnregister={() => handleUnregister(hackathon.id)}
-              />
-            ))}
+            {hackathons.map((hackathon) =>
+              hackathon.type === "live" ? (
+                <LiveCodingCard key={hackathon.id} hackathon={hackathon} />
+              ) : (
+                <HackathonCard
+                  key={hackathon.id}
+                  hackathon={hackathon}
+                  registration={registrations.find(
+                    (registration) => registration.hackathonId === hackathon.id,
+                  )}
+                  onRegister={() => setRegistering(hackathon)}
+                  onUnregister={() => handleUnregister(hackathon.id)}
+                />
+              ),
+            )}
           </div>
         )}
 
@@ -145,10 +185,11 @@ export function EventsView({
           from the toggle above.
         </p>
       </div>
-
+      
       {registering && (
         <RegisterModal hackathon={registering} onClose={() => setRegistering(null)} />
       )}
+
     </main>
   )
 }

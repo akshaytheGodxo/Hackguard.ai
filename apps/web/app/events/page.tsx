@@ -33,6 +33,7 @@ export default async function EventsPage() {
     name: hackathon.name,
     date: formatHackathonDate(hackathon.date),
     status: hackathon.status,
+    type: hackathon.type,
     participants: hackathon.participants,
     submissions: hackathon.submissions,
     description: hackathon.description,
