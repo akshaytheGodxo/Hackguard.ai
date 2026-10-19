@@ -1,0 +1,78 @@
+// HackGuard AI — Prisma schema.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  candidate
+  organizer
+}
+
+enum HackathonType {
+  standard
+  live
+}
+
+enum HackathonStatus {
+  Live
+  Upcoming
+  Completed
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(candidate)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  hackathons    Hackathon[]   @relation("HackathonOrganizer")
+  registrations Registration[]
+}
+
+model Hackathon {
+  id           String          @id @default(cuid())
+  name         String
+  date         DateTime
+  description  String
+  status       HackathonStatus @default(Upcoming)
+  participants Int             @default(0)
+  submissions  Int             @default(0)
+  organizer    User            @relation("HackathonOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  organizerId  String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  type HackathonType
+  registrations Registration[]
+}
+
+model Registration {
+  id          String               @id @default(cuid())
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  hackathon   Hackathon            @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  hackathonId String
+  members     RegistrationMember[]
+  createdAt   DateTime             @default(now())
+
+  @@unique([hackathonId, userId])
+}
+
+model RegistrationMember {
+  id             String     @id @default(cuid())
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  registrationId String
+  name           String
+  email          String
+  isLeader       Boolean    @default(false)
+  position       Int        @default(0)
+
+  @@index([registrationId])
+}
