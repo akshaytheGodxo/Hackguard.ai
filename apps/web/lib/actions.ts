@@ -188,7 +188,8 @@ export async function getProblemWithTestcase(id:string) {
       problemId: id,
     },
     include: {
-      testcases: true
+      testcases: true,
+      hackathon: { select: { name: true } },
     }
   })
 
