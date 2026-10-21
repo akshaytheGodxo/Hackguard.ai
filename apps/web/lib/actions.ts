@@ -158,3 +158,83 @@ export async function unregisterFromHackathon(hackathonId: string): Promise<Acti
 
   revalidatePath("/events")
 }
+
+export type TestCaseDraft = { input: string; output: string }
+
+
+export async function getProblem(
+  hackathonId: string
+) {
+  const session = await getSession();
+  if (!session) redirect("/sign-in")
+  const hackathon = await prisma.hackathon.findUnique({
+    where: {
+      id: hackathonId
+    },
+    include: {
+      problems: true
+    }
+  })
+
+  if (!hackathon) return {error: "Hackathon not found."}
+  const res = hackathon.problems;
+  return res;
+}
+
+
+export async function getProblemWithTestcase(id:string) {
+  const res = await prisma.problem.findUnique({
+    where: {
+      problemId: id,
+    },
+    include: {
+      testcases: true
+    }
+  })
+
+  if (!res) return {error: "No Such Problem was found."}
+  return res;
+}
+
+export async function addProblem(
+  hackathonId: string,
+  values: { name: string; description: string; testCases: TestCaseDraft[] },
+): Promise<ActionResult> {
+  const session = await getSession()
+  if (!session) redirect("/sign-in")
+  if (session.role !== "organizer") redirect(ROLE_HOME[session.role])
+
+  const name = values.name.trim()
+  const description = values.description.trim()
+  const testCases = values.testCases
+    .map((testCase) => ({ input: testCase.input.trim(), output: testCase.output.trim() }))
+    .filter((testCase) => testCase.input !== "" || testCase.output !== "")
+
+  if (!name || !description) return { error: "Problem name and description are required." }
+  if (testCases.length === 0) return { error: "Add at least one test case." }
+  if (testCases.some((testCase) => testCase.input === "" || testCase.output === "")) {
+    return { error: "Each test case needs both an input and an expected output." }
+  }
+
+  const hackathon = await prisma.hackathon.findUnique({
+    where: { id: hackathonId },
+    select: { organizerId: true, type: true },
+  })
+  if (!hackathon) return { error: "Hackathon not found." }
+  if (hackathon.organizerId !== session.userId) return { error: "You don't own this hackathon." }
+  if (hackathon.type !== "live") return { error: "Problems can only be added to live hackathons." }
+
+  const duplicate = await prisma.problem.findUnique({ where: { name, hackathonId } })
+  if (duplicate) return { error: "A problem with that name already exists in this event." }
+
+  await prisma.problem.create({
+    data: {
+      name,
+      description,
+      hackathonId,
+      testcases: { create: testCases },
+    },
+  })
+
+  revalidatePath("/organizer")
+}

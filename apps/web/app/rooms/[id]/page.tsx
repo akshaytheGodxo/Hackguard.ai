@@ -6,7 +6,9 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { formatHackathonDate } from "@/lib/api/hackathons"
 import { getSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/prisma"
-import TestPage from "@/components/room/RoomMatching"
+import LoadQuestions from "@/components/room/LoadQuestions"
+import { getProblem } from "@/lib/actions"
+
 export const metadata: Metadata = {
   title: "Room | HackGuard AI",
 }
@@ -26,6 +28,9 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
   if (!hackathon) notFound()
 
   const isLive = hackathon.type === "live"
+
+
+  const problems = await getProblem(id);
 
   const statusStyles =
     hackathon.status === "Live"
@@ -86,8 +91,8 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
               Stage
             </span>
           </div>
-          <TestPage />
-          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+          <LoadQuestions problems={problems}/>
+          {/* <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
             <p className="text-[14px] font-semibold text-[var(--hg-text)]">
               {isLive ? "The arena is live" : "The room is not live yet"}
             </p>    
@@ -96,7 +101,7 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
                 ? "Video stage, matchmaking and judging will stream into this space."
                 : "Check back    when the event goes live — the stage will open here."}
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
     </main>

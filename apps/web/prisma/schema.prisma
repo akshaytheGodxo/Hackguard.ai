@@ -24,6 +24,17 @@ enum HackathonStatus {
   Completed
 }
 
+
+
+
+model TestCase {
+  tid String @id @default(cuid())
+  input String
+  output String
+  problem Problem @relation(fields: [pid], references: [problemId], onDelete: Cascade)
+  pid String
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String
@@ -35,6 +46,19 @@ model User {
 
   hackathons    Hackathon[]   @relation("HackathonOrganizer")
   registrations Registration[]
+}
+
+
+
+model Problem {
+  problemId   String     @id @default(cuid())
+  name        String
+  description String
+  testcases   TestCase[]
+  hackathonId String
+  hackathon   Hackathon  @relation(fields: [hackathonId], references: [id])
+
+  @@unique([hackathonId, name])
 }
 
 model Hackathon {
@@ -50,6 +74,7 @@ model Hackathon {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   type HackathonType @default(standard)
+  problems Problem[]
   registrations Registration[]
 }
 

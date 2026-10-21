@@ -1,8 +1,10 @@
 "use client"
 
-import { CalendarPlus, Rocket } from "lucide-react"
+import { CalendarPlus, FileCode2, Rocket } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
+import { AddProblemForm } from "@/components/organizer/add-problem-form"
 import type { Hackathon } from "@/lib/api/hackathons"
 import type { SessionView } from "@/lib/auth/session"
 
@@ -13,6 +15,7 @@ export function OrganizerView({
   session: SessionView
   hackathons: Hackathon[]
 }) {
+  const [addingTo, setAddingTo] = useState<string | null>(null)
 
   return (
     <main className="hg-fade-in min-h-screen bg-[var(--hg-bg)]">
@@ -84,6 +87,26 @@ export function OrganizerView({
                     submissions
                   </span>
                 </div>
+
+                {hackathon.type === "live" && (
+                  <div className="mt-4 border-t border-[var(--hg-border)] pt-4">
+                    {addingTo !== hackathon.id ? (
+                      <button
+                        type="button"
+                        onClick={() => setAddingTo(hackathon.id)}
+                        className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-[12px] font-semibold text-red-400 transition-colors hover:bg-red-500/20"
+                      >
+                        <FileCode2 className="size-3.5" /> Add problems
+                      </button>
+                    ) : (
+                      <AddProblemForm
+                        hackathonId={hackathon.id}
+                        onClose={() => setAddingTo(null)}
+                        onSaved={() => setAddingTo(null)}
+                      />
+                    )}
+                  </div>
+                )}
               </article>
             ))}
           </div>
