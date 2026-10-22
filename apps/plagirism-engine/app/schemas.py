@@ -1,4 +1,3 @@
-
 from typing import Literal
 from pydantic import BaseModel, Field
 
@@ -27,3 +26,12 @@ class AnalyzeResponse(BaseModel):
     matched_ngrams: int = Field(ge=0)
     risk_level: Literal["low", "medium", "high"]
     warnings: list[str] = []
+
+class BatchAnalyzeRequest(BaseModel):
+    target: CodeSubmission
+    candidates: list[CodeSubmission] = Field(min_length=1, max_length=100)
+
+
+class BatchAnalyzeResponse(BaseModel):
+    target_submission_id: str
+    results: list[AnalyzeResponse]
