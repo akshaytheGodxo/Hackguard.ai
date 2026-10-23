@@ -24,57 +24,78 @@ enum HackathonStatus {
   Completed
 }
 
-
-
-
 model TestCase {
-  tid String @id @default(cuid())
-  input String
-  output String
+  tid     String  @id @default(cuid())
+  input   String
+  output  String
   problem Problem @relation(fields: [pid], references: [problemId], onDelete: Cascade)
-  pid String
+  pid     String
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(candidate)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  hackathons    Hackathon[]   @relation("HackathonOrganizer")
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  password      String
+  role          Role           @default(candidate)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  submissions   Submission[]
+  hackathons    Hackathon[]    @relation("HackathonOrganizer")
   registrations Registration[]
 }
 
+model Submission {
+  id          String   @id @default(cuid())
+  sourceCode  String   @db.Text
+  language    String
+  submittedAt DateTime @default(now())
 
+  // Required participant identity for both hackathon types
+  participantId String
+  participant   User   @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  // Required for standard hackathons, null for direct live participation
+  registrationId String?
+  registration   Registration? @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  problemId String
+  problem   Problem @relation(fields: [problemId], references: [problemId], onDelete: Cascade)
+
+  submittedByMemberId String?
+  submittedByMember   RegistrationMember? @relation(fields: [submittedByMemberId], references: [id], onDelete: SetNull)
+
+  @@index([problemId, submittedAt])
+  @@index([participantId, problemId])
+  @@index([registrationId, problemId])
+}
 
 model Problem {
-  problemId   String     @id @default(cuid())
+  problemId   String       @id @default(cuid())
   name        String
   description String
   testcases   TestCase[]
   hackathonId String
-  hackathon   Hackathon  @relation(fields: [hackathonId], references: [id])
+  hackathon   Hackathon    @relation(fields: [hackathonId], references: [id])
+  submissions Submission[]
 
   @@unique([hackathonId, name])
 }
 
 model Hackathon {
-  id           String          @id @default(cuid())
-  name         String
-  date         DateTime
-  description  String
-  status       HackathonStatus @default(Upcoming)
-  participants Int             @default(0)
-  submissions  Int             @default(0)
-  organizer    User            @relation("HackathonOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
-  organizerId  String
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  type HackathonType @default(standard)
-  problems Problem[]
+  id            String          @id @default(cuid())
+  name          String
+  date          DateTime
+  description   String
+  status        HackathonStatus @default(Upcoming)
+  participants  Int             @default(0)
+  submissions   Int             @default(0)
+  organizer     User            @relation("HackathonOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  organizerId   String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  type          HackathonType   @default(standard)
+  problems      Problem[]
   registrations Registration[]
 }
 
@@ -86,18 +107,20 @@ model Registration {
   hackathonId String
   members     RegistrationMember[]
   createdAt   DateTime             @default(now())
+  submissions Submission[]
 
   @@unique([hackathonId, userId])
 }
 
 model RegistrationMember {
-  id             String     @id @default(cuid())
+  id             String       @id @default(cuid())
   registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   registrationId String
   name           String
   email          String
-  isLeader       Boolean    @default(false)
-  position       Int        @default(0)
+  isLeader       Boolean      @default(false)
+  position       Int          @default(0)
+  submissions    Submission[]
 
   @@index([registrationId])
 }
