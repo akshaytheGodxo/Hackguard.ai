@@ -10,6 +10,20 @@ const SUPPORTED_LANGUAGES = [
   "javascript",
 ];
 
+const ENGINE_URL =
+  process.env.PLAGIARISM_ENGINE_URL ??
+  "http://127.0.0.1:8000";
+
+type AnalysisResult = {
+  submission_a_id: string;
+  submission_b_id: string;
+  language: string;
+  token_similarity: number;
+  matched_ngrams: number;
+  risk_level: "low" | "medium" | "high";
+  warnings: string[];
+};
+
 export async function POST(request: Request) {
   try {
     const session = await getSession();
@@ -66,7 +80,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Find the problem and determine its hackathon type.
     const problem = await prisma.problem.findUnique({
       where: { problemId },
       include: {
@@ -89,22 +102,22 @@ export async function POST(request: Request) {
     let verifiedRegistrationId: string | null = null;
 
     if (problem.hackathon.type === "standard") {
-      // Standard hackathons require registration.
       if (typeof registrationId !== "string") {
         return NextResponse.json(
-          { error: "Registration is required for this hackathon" },
+          { error: "Registration is required" },
           { status: 400 }
         );
       }
 
-      const registration = await prisma.registration.findFirst({
-        where: {
-          id: registrationId,
-          userId: session.userId,
-          hackathonId: problem.hackathon.id,
-        },
-        select: { id: true },
-      });
+      const registration =
+        await prisma.registration.findFirst({
+          where: {
+            id: registrationId,
+            userId: session.userId,
+            hackathonId: problem.hackathon.id,
+          },
+          select: { id: true },
+        });
 
       if (!registration) {
         return NextResponse.json(
@@ -134,28 +147,25 @@ export async function POST(request: Request) {
 
         if (!member) {
           return NextResponse.json(
-            { error: "Team member is not part of this registration" },
+            { error: "Invalid team member" },
             { status: 403 }
           );
         }
       }
-    } else {
-      // Live hackathons allow direct participation.
-      // Do not accept a registration or team member ID here.
-      if (
-        registrationId != null ||
-        submittedByMemberId != null
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "Live hackathons do not use registration or team member IDs",
-          },
-          { status: 400 }
-        );
-      }
+    } else if (
+      registrationId != null ||
+      submittedByMemberId != null
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Live hackathons do not use registration IDs",
+        },
+        { status: 400 }
+      );
     }
 
+    // Save first. Analysis failures must not lose the submission.
     const submission = await prisma.submission.create({
       data: {
         sourceCode,
@@ -163,22 +173,180 @@ export async function POST(request: Request) {
         participantId: session.userId,
         problemId: problem.problemId,
         registrationId: verifiedRegistrationId,
+        ...(submittedByMemberId
+          ? { submittedByMemberId }
+          : {}),
       },
       select: {
         id: true,
         problemId: true,
         language: true,
         submittedAt: true,
+        participantId: true,
+        registrationId: true,
+        sourceCode: true,
       },
     });
 
-    return NextResponse.json(
-      {
-        message: "Submission saved successfully",
-        submission,
-      },
-      { status: 201 }
-    );
+    try {
+      // Find recent submissions for the same problem and language.
+      const previousSubmissions =
+        await prisma.submission.findMany({
+          where: {
+            problemId: submission.problemId,
+            language: submission.language,
+            id: { not: submission.id },
+          },
+          orderBy: { submittedAt: "desc" },
+          take: 100,
+        });
+
+      // Treat a registration/team as one participant in standard
+      // hackathons; use the user ID for direct live participation.
+      const participantKey = (item: {
+        participantId: string;
+        registrationId: string | null;
+      }) => item.registrationId ?? item.participantId;
+
+      const targetParticipant = participantKey(submission);
+
+      const candidates = previousSubmissions
+        .filter(
+          (candidate) =>
+            participantKey(candidate) !== targetParticipant
+        )
+        .map((candidate) => ({
+          submission_id: candidate.id,
+          participant_id: participantKey(candidate),
+          problem_id: candidate.problemId,
+          language: candidate.language as
+            | "cpp"
+            | "python"
+            | "java"
+            | "javascript",
+          source_code: candidate.sourceCode,
+        }));
+
+      // The batch endpoint requires at least one candidate.
+      if (candidates.length === 0) {
+        return NextResponse.json(
+          {
+            message: "Submission saved successfully",
+            submission: {
+              id: submission.id,
+              problemId: submission.problemId,
+              language: submission.language,
+              submittedAt: submission.submittedAt,
+            },
+            analysisStatus: "no_candidates",
+            reports: [],
+          },
+          { status: 201 }
+        );
+      }
+
+      const response = await fetch(
+        `${ENGINE_URL.replace(/\/$/, "")}/analyze/batch`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            target: {
+              submission_id: submission.id,
+              participant_id: targetParticipant,
+              problem_id: submission.problemId,
+              language: submission.language,
+              source_code: submission.sourceCode,
+            },
+            candidates,
+          }),
+          signal: AbortSignal.timeout(15_000),
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Plagiarism engine returned HTTP ${response.status}: ${
+            (await response.text()).slice(0, 500)
+          }`
+        );
+      }
+
+      const analysis = (await response.json()) as {
+        target_submission_id: string;
+        results: AnalysisResult[];
+      };
+
+      if (analysis.target_submission_id !== submission.id) {
+        throw new Error("Unexpected target submission ID");
+      }
+
+      // Persist every pairwise result.
+      const reports = await prisma.$transaction(
+        analysis.results.map((result) =>
+          prisma.plagiarismReport.upsert({
+            where: {
+              targetSubmissionId_candidateSubmissionId: {
+                targetSubmissionId: result.submission_a_id,
+                candidateSubmissionId: result.submission_b_id,
+              },
+            },
+            create: {
+              targetSubmissionId: result.submission_a_id,
+              candidateSubmissionId: result.submission_b_id,
+              tokenSimilarity: result.token_similarity,
+              matchedNgrams: result.matched_ngrams,
+              riskLevel: result.risk_level,
+              warnings: result.warnings ?? [],
+            },
+            update: {
+              tokenSimilarity: result.token_similarity,
+              matchedNgrams: result.matched_ngrams,
+              riskLevel: result.risk_level,
+              warnings: result.warnings ?? [],
+            },
+          })
+        )
+      );
+
+      return NextResponse.json(
+        {
+          message: "Submission saved and analyzed",
+          submission: {
+            id: submission.id,
+            problemId: submission.problemId,
+            language: submission.language,
+            submittedAt: submission.submittedAt,
+          },
+          analysisStatus: "completed",
+          reports,
+        },
+        { status: 201 }
+      );
+    } catch (analysisError) {
+      console.error(
+        "Plagiarism analysis failed:",
+        analysisError
+      );
+
+      return NextResponse.json(
+        {
+          message: "Submission saved; analysis failed",
+          submission: {
+            id: submission.id,
+            problemId: submission.problemId,
+            language: submission.language,
+            submittedAt: submission.submittedAt,
+          },
+          analysisStatus: "failed",
+          reports: [],
+        },
+        { status: 201 }
+      );
+    }
   } catch (error) {
     console.error("Submission API error:", error);
 

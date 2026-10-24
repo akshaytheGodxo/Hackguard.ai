@@ -51,11 +51,9 @@ model Submission {
   language    String
   submittedAt DateTime @default(now())
 
-  // Required participant identity for both hackathon types
   participantId String
   participant   User   @relation(fields: [participantId], references: [id], onDelete: Cascade)
 
-  // Required for standard hackathons, null for direct live participation
   registrationId String?
   registration   Registration? @relation(fields: [registrationId], references: [id], onDelete: Cascade)
 
@@ -65,9 +63,31 @@ model Submission {
   submittedByMemberId String?
   submittedByMember   RegistrationMember? @relation(fields: [submittedByMemberId], references: [id], onDelete: SetNull)
 
+  reportsAsTarget    PlagiarismReport[] @relation("ReportTarget")
+  reportsAsCandidate PlagiarismReport[] @relation("ReportCandidate")
+
   @@index([problemId, submittedAt])
   @@index([participantId, problemId])
   @@index([registrationId, problemId])
+}
+
+model PlagiarismReport {
+  id String @id @default(cuid())
+
+  targetSubmissionId String
+  targetSubmission   Submission @relation("ReportTarget", fields: [targetSubmissionId], references: [id], onDelete: Cascade)
+
+  candidateSubmissionId String
+  candidateSubmission   Submission @relation("ReportCandidate", fields: [candidateSubmissionId], references: [id], onDelete: Cascade)
+
+  tokenSimilarity Float
+  matchedNgrams   Int
+  riskLevel       String
+  warnings        String[] @default([])
+  createdAt       DateTime @default(now())
+
+  @@unique([targetSubmissionId, candidateSubmissionId])
+  @@index([riskLevel, createdAt])
 }
 
 model Problem {
