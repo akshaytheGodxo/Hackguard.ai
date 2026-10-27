@@ -1,6 +1,6 @@
 "use client"
 
-import { CalendarPlus, FileCode2, Rocket } from "lucide-react"
+import { CalendarPlus, FileCode2, Rocket, ShieldAlert } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
@@ -32,13 +32,22 @@ export function OrganizerView({
               Host events, track submissions, and manage judging.
             </p>
           </div>
-          <Link
-            href="/organizer/host"
-            className="hg-gradient-bg inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-bold text-[#101426] shadow-[0_12px_30px_rgba(109,146,238,0.25)] transition-all hover:-translate-y-px hover:brightness-105"
-          >
-            <CalendarPlus className="size-4" />
-            Host a hackathon
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/organizer/plagiarism"
+              className="inline-flex items-center gap-2 rounded-lg border border-[var(--hg-border-strong)] bg-[var(--hg-surface)] px-4 py-2.5 text-[13px] font-semibold text-[var(--hg-muted)] transition-colors hover:border-[var(--hg-cyan)]/40 hover:text-[var(--hg-cyan)]"
+            >
+              <ShieldAlert className="size-4" />
+              Plagiarism review
+            </Link>
+            <Link
+              href="/organizer/host"
+              className="hg-gradient-bg inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-bold text-[#101426] shadow-[0_12px_30px_rgba(109,146,238,0.25)] transition-all hover:-translate-y-px hover:brightness-105"
+            >
+              <CalendarPlus className="size-4" />
+              Host a hackathon
+            </Link>
+          </div>
         </div>
 
         {hackathons.length === 0 ? (
@@ -111,6 +120,17 @@ export function OrganizerView({
             ))}
           </div>
         )}
+
+        <p className="mt-8 text-[12px] text-[var(--hg-dim)]">
+          Suspect copied solutions?{" "}
+          <Link
+            href="/organizer/plagiarism"
+            className="font-semibold text-[var(--hg-cyan)] hover:underline"
+          >
+            Review plagiarism reports
+          </Link>
+          .
+        </p>
       </div>
     </main>
   )

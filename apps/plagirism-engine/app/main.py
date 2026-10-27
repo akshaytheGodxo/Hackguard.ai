@@ -6,6 +6,7 @@ from app.schemas import (
     BatchAnalyzeRequest,
     BatchAnalyzeResponse
 )
+import judge0
 app = FastAPI(
     title="HackGuard Plagiarism Engine",
     description="Code similarity analysis API",
@@ -50,3 +51,5 @@ def analyze_batch(request: BatchAnalyzeRequest):
         target_submission_id=target.submission_id,
         results=results,
     )
+
+  

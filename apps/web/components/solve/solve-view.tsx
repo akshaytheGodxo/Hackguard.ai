@@ -148,6 +148,24 @@ function handleEditorWillMount(monaco: Monaco) {
   })
 }
 
+async function HandleRun() {
+  
+  try {
+    const res = await fetch("/api/judge", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        
+      })
+    })
+  } catch (error) {
+    
+  }
+
+} 
+
 export function SolveView({ problem }: { problem: SolveProblem }) {
   const [lang, setLang] = useState<LangId>("javascript")
   const [codes, setCodes] = useState<Record<LangId, string>>(() => loadSavedCodes(problem.id))

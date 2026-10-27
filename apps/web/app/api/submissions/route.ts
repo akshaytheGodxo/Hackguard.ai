@@ -165,7 +165,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Save first. Analysis failures must not lose the submission.
     const submission = await prisma.submission.create({
       data: {
         sourceCode,
@@ -189,7 +188,6 @@ export async function POST(request: Request) {
     });
 
     try {
-      // Find recent submissions for the same problem and language.
       const previousSubmissions =
         await prisma.submission.findMany({
           where: {
@@ -201,8 +199,6 @@ export async function POST(request: Request) {
           take: 100,
         });
 
-      // Treat a registration/team as one participant in standard
-      // hackathons; use the user ID for direct live participation.
       const participantKey = (item: {
         participantId: string;
         registrationId: string | null;
@@ -227,7 +223,6 @@ export async function POST(request: Request) {
           source_code: candidate.sourceCode,
         }));
 
-      // The batch endpoint requires at least one candidate.
       if (candidates.length === 0) {
         return NextResponse.json(
           {
@@ -284,7 +279,6 @@ export async function POST(request: Request) {
         throw new Error("Unexpected target submission ID");
       }
 
-      // Persist every pairwise result.
       const reports = await prisma.$transaction(
         analysis.results.map((result) =>
           prisma.plagiarismReport.upsert({
