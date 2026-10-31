@@ -26,6 +26,7 @@ export function RegisterModal({
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
+  const [teamName, setTeamName] = useState("")
   const [leader, setLeader] = useState<TeamMember>({ name: "", email: "" })
   const [members, setMembers] = useState<TeamMember[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -63,6 +64,11 @@ export function RegisterModal({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    if (!teamName.trim()) {
+      setError("Enter a team name.")
+      return
+    }
+
     const team: TeamMember[] = [
       { name: leader.name.trim(), email: leader.email.trim() },
       ...members.map((member) => ({ name: member.name.trim(), email: member.email.trim() })),
@@ -85,13 +91,18 @@ export function RegisterModal({
 
     setError(null)
     startTransition(async () => {
-      const result = await registerForHackathon(hackathon.id, team)
-      if (result?.error) {
-        setError(result.error)
-        return
+      try {
+        const result = await registerForHackathon(hackathon.id, teamName, team)
+        if (result?.error) {
+          setError(result.error)
+          return
+        }
+        onClose()
+        router.refresh()
+      } catch (registrationError) {
+        console.error("Team registration request failed:", registrationError)
+        setError("Unable to register your team. Please try again.")
       }
-      onClose()
-      router.refresh()
     })
   }
 
@@ -134,12 +145,24 @@ export function RegisterModal({
         </div>
 
         <form className="mt-5" onSubmit={handleSubmit} noValidate>
+          <Field.Root className="mb-5 flex flex-col gap-1.5">
+            <Label className={labelClass}>Team name</Label>
+            <Input
+              autoFocus
+              name="team-name"
+              placeholder="e.g. Byte Builders"
+              value={teamName}
+              maxLength={100}
+              onChange={(event) => setTeamName(event.target.value)}
+              className={fieldClass}
+            />
+          </Field.Root>
+
           <span className={labelClass}>Team leader</span>
           <div className="mt-2 grid gap-3 sm:grid-cols-2">
             <Field.Root className="flex flex-col gap-1.5">
               <Label className={fieldLabelClass}>Name</Label>
               <Input
-                autoFocus
                 name="leader-name"
                 placeholder="Jane Doe"
                 value={leader.name}

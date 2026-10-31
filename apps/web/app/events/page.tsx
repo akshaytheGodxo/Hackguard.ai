@@ -1,7 +1,12 @@
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { EventsView } from "@/components/events/events-view"
-import { formatHackathonDate, type Hackathon, type RegistrationView } from "@/lib/api/hackathons"
+import {
+  formatHackathonDate,
+  getHackathonStartAt,
+  type Hackathon,
+  type RegistrationView,
+} from "@/lib/api/hackathons"
 import { ROLE_HOME } from "@/lib/auth/roles"
 import { getSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/prisma"
@@ -32,6 +37,9 @@ export default async function EventsPage() {
     id: hackathon.id,
     name: hackathon.name,
     date: formatHackathonDate(hackathon.date),
+    startAt: getHackathonStartAt(hackathon.date, hackathon.startTime),
+    startTime: hackathon.startTime,
+    endTime: hackathon.endTime,
     status: hackathon.status,
     type: hackathon.type,
     participants: hackathon.participants,
@@ -42,6 +50,7 @@ export default async function EventsPage() {
 
   const registrationViews: RegistrationView[] = registrations.map((registration) => ({
     hackathonId: registration.hackathonId,
+    teamName: registration.teamName,
     members: registration.members
       .slice()
       .sort((a, b) => a.position - b.position)

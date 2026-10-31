@@ -8,7 +8,10 @@ const SUPPORTED_LANGUAGES = [
   "python",
   "java",
   "javascript",
+  "go",
+  "rust",
 ];
+const PLAGIARISM_LANGUAGES = ["cpp", "python", "java", "javascript"];
 
 const ENGINE_URL =
   process.env.PLAGIARISM_ENGINE_URL ??
@@ -186,6 +189,23 @@ export async function POST(request: Request) {
         sourceCode: true,
       },
     });
+
+    if (!PLAGIARISM_LANGUAGES.includes(submission.language)) {
+      return NextResponse.json(
+        {
+          message: "Submission saved; plagiarism analysis is unavailable for this language",
+          submission: {
+            id: submission.id,
+            problemId: submission.problemId,
+            language: submission.language,
+            submittedAt: submission.submittedAt,
+          },
+          analysisStatus: "unsupported_language",
+          reports: [],
+        },
+        { status: 201 }
+      );
+    }
 
     try {
       const previousSubmissions =

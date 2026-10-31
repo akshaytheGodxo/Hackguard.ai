@@ -3,7 +3,7 @@
 import { Check, Compass } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { RegisterModal } from "@/components/events/register-modal"
 import { unregisterFromHackathon } from "@/lib/actions"
@@ -64,6 +64,29 @@ function HackathonCard({
 }) {
   const registered = Boolean(registration)
   const closed = hackathon.status === "Completed"
+  const [startedAt, setStartedAt] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!hackathon.startAt) return
+    const startTime = Date.parse(hackathon.startAt)
+    if (!Number.isFinite(startTime)) return
+
+    let timeout: number
+    function scheduleStart() {
+      const delay = Math.max(startTime - Date.now(), 0)
+      timeout = window.setTimeout(() => {
+        if (Date.now() >= startTime) setStartedAt(hackathon.startAt)
+        else scheduleStart()
+      }, Math.min(delay, 2_147_000_000))
+    }
+
+    scheduleStart()
+    return () => window.clearTimeout(timeout)
+  }, [hackathon.startAt])
+  const hasStarted = hackathon.startAt
+    ? startedAt === hackathon.startAt
+    : hackathon.status === "Live"
+  const joinAvailable = !closed && hasStarted
 
   return (
     <article className="flex flex-col rounded-xl border border-[var(--hg-border)] bg-[var(--hg-surface)] p-5 transition-colors hover:border-[var(--hg-cyan)]/40">
@@ -76,7 +99,11 @@ function HackathonCard({
         </span>
       </div>
       <p className="mt-1 text-[12px] text-[var(--hg-dim)]">
-        {hackathon.date} · hosted by {hackathon.organizer}
+        {hackathon.date}
+        {hackathon.startTime && hackathon.endTime
+          ? ` · ${hackathon.startTime}–${hackathon.endTime}`
+          : ""}
+        {" · "}hosted by {hackathon.organizer}
       </p>
       <p className="mt-3 line-clamp-2 flex-1 text-[12px] leading-relaxed text-[var(--hg-muted)]">
         {hackathon.description}
@@ -90,29 +117,39 @@ function HackathonCard({
             <strong className="text-[var(--hg-text)]">{hackathon.submissions}</strong> submissions
           </span>
         </div>
-        <button
-          type="button"
-          onClick={registered ? onUnregister : onRegister}
-          disabled={closed}
-          title={registered ? "Click to cancel your registration" : undefined}
-          className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-            registered
-              ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-400 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400"
-              : "border-[var(--hg-cyan)]/40 bg-[var(--hg-cyan)]/10 text-[var(--hg-cyan)] hover:bg-[var(--hg-cyan)]/20"
-          }`}
-        >
-          {registered ? (
-            <span className="inline-flex items-center gap-1">
-              <Check className="size-3" />
-              Registered
-              {(registration?.members.length ?? 0) > 1 ? ` · ${registration?.members.length}` : ""}
-            </span>
-          ) : closed ? (
-            "Closed"
-          ) : (
-            "Register"
+        <div className="flex shrink-0 items-center gap-2">
+          {registered && joinAvailable && (
+            <Link
+              href={`/rooms/${hackathon.id}`}
+              className="rounded-full border border-[var(--hg-cyan)]/40 bg-[var(--hg-cyan)]/10 px-3 py-1 text-[11px] font-semibold text-[var(--hg-cyan)] transition-colors hover:bg-[var(--hg-cyan)]/20"
+            >
+              Join
+            </Link>
           )}
-        </button>
+          <button
+            type="button"
+            onClick={registered ? onUnregister : onRegister}
+            disabled={closed}
+            title={registered ? "Click to cancel your registration" : undefined}
+            className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              registered
+                ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-400 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400"
+                : "border-[var(--hg-cyan)]/40 bg-[var(--hg-cyan)]/10 text-[var(--hg-cyan)] hover:bg-[var(--hg-cyan)]/20"
+            }`}
+          >
+            {registered ? (
+              <span className="inline-flex items-center gap-1">
+                <Check className="size-3" />
+                {registration?.teamName || "Registered"}
+                {(registration?.members.length ?? 0) > 1 ? ` · ${registration?.members.length}` : ""}
+              </span>
+            ) : closed ? (
+              "Closed"
+            ) : (
+              "Register"
+            )}
+          </button>
+        </div>
       </div>
     </article>
   )

@@ -13,12 +13,31 @@ export type SolveProblem = {
   description: string
   hackathonId: string
   eventName: string
+  registrationId?: string
   examples: { id: string; input: string; output: string }[]
 }
 
 type LangId = "javascript" | "python" | "java" | "cpp" | "go" | "rust"
 type RunState = "idle" | "running" | "done"
 type RunMode = "run" | "submit"
+type CaseResult = {
+  testCase: number
+  verdict: string
+  passed: boolean
+  output: string | null
+  compileError?: string | null
+  runtimeError?: string | null
+  time: string | null
+  memory: number | null
+}
+type JudgeResponse = {
+  problemId: string
+  verdict: string
+  passed: boolean
+  passedCount: number
+  totalTestCases: number
+  results: CaseResult[]
+}
 
 const LANGS: { id: LangId; label: string }[] = [
   { id: "javascript", label: "JavaScript" },
@@ -148,23 +167,43 @@ function handleEditorWillMount(monaco: Monaco) {
   })
 }
 
-async function HandleRun() {
-  
+async function readResponseJson(response: Response): Promise<unknown> {
   try {
-    const res = await fetch("/api/judge", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        
-      })
-    })
-  } catch (error) {
-    
+    return await response.json()
+  } catch {
+    throw new Error("The server returned an invalid response.")
   }
+}
 
-} 
+function responseError(payload: unknown, fallback: string): string {
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "error" in payload &&
+    typeof payload.error === "string"
+  ) {
+    return payload.error
+  }
+  return fallback
+}
+
+function isJudgeResponse(payload: unknown): payload is JudgeResponse {
+  if (typeof payload !== "object" || payload === null) return false
+  return (
+    "problemId" in payload &&
+    typeof payload.problemId === "string" &&
+    "verdict" in payload &&
+    typeof payload.verdict === "string" &&
+    "passed" in payload &&
+    typeof payload.passed === "boolean" &&
+    "passedCount" in payload &&
+    typeof payload.passedCount === "number" &&
+    "totalTestCases" in payload &&
+    typeof payload.totalTestCases === "number" &&
+    "results" in payload &&
+    Array.isArray(payload.results)
+  )
+}
 
 export function SolveView({ problem }: { problem: SolveProblem }) {
   const [lang, setLang] = useState<LangId>("javascript")
@@ -172,27 +211,73 @@ export function SolveView({ problem }: { problem: SolveProblem }) {
   const [runState, setRunState] = useState<RunState>("idle")
   const [runMode, setRunMode] = useState<RunMode>("run")
   const [activeExample, setActiveExample] = useState(0)
+  const [judgeResult, setJudgeResult] = useState<JudgeResponse | null>(null)
+  const [runError, setRunError] = useState<string | null>(null)
+  const [submissionMessage, setSubmissionMessage] = useState<string | null>(null)
 
   const runStateRef = useRef<RunState>("idle")
-  const timerRef = useRef<number | null>(null)
 
-  useEffect(() => {
-    runStateRef.current = runState
-  }, [runState])
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) window.clearTimeout(timerRef.current)
-    }
-  }, [])
-
-  const begin = useCallback((mode: RunMode) => {
+  const begin = useCallback(async (mode: RunMode) => {
     if (runStateRef.current === "running") return
+    runStateRef.current = "running"
     setRunMode(mode)
     setRunState("running")
-    if (timerRef.current) window.clearTimeout(timerRef.current)
-    timerRef.current = window.setTimeout(() => setRunState("done"), 900)
-  }, [])
+    setJudgeResult(null)
+    setRunError(null)
+    setSubmissionMessage(null)
+
+    try {
+      const judgeResponse = await fetch("/api/judge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          problemId: problem.id,
+          sourceCode: codes[lang],
+          language: lang,
+          ...(problem.registrationId
+            ? { registrationId: problem.registrationId }
+            : {}),
+        }),
+      })
+      const judgePayload = await readResponseJson(judgeResponse)
+      if (!judgeResponse.ok) {
+        throw new Error(responseError(judgePayload, "Failed to run code."))
+      }
+      if (!isJudgeResponse(judgePayload)) {
+        throw new Error("The judge returned an unexpected response.")
+      }
+      setJudgeResult(judgePayload)
+
+      if (mode === "submit") {
+        const submissionResponse = await fetch("/api/submissions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            problemId: problem.id,
+            sourceCode: codes[lang],
+            language: lang,
+            ...(problem.registrationId
+              ? { registrationId: problem.registrationId }
+              : {}),
+          }),
+        })
+        const submissionPayload = await readResponseJson(submissionResponse)
+        if (!submissionResponse.ok) {
+          throw new Error(
+            responseError(submissionPayload, "Failed to save submission.")
+          )
+        }
+        setSubmissionMessage("Submission saved.")
+      }
+    } catch (error) {
+      setRunError(
+        error instanceof Error ? error.message : "Unable to run code."
+      )
+    } finally {
+      runStateRef.current = "done"
+      setRunState("done")
+    }
+  }, [codes, lang, problem.id, problem.registrationId])
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -438,25 +523,62 @@ export function SolveView({ problem }: { problem: SolveProblem }) {
 
               {runState === "done" && (
                 <div className="p-3">
-                  <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11.5px] font-medium text-amber-300">
-                    The judge isn&apos;t connected in this build yet — wire up the execution
-                    service to stream live results here.
-                  </div>
-                  <div className="mt-2 overflow-hidden rounded-lg border border-[var(--hg-border)] divide-y divide-[var(--hg-border)]">
-                    {problem.examples.map((item, index) => (
-                      <div key={item.id} className="flex items-center gap-3 px-3 py-2">
-                        <span className="shrink-0 font-mono text-[11px] font-semibold text-[var(--hg-muted)]">
-                          Case {index + 1}
+                  {runError && (
+                    <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11.5px] font-medium text-amber-300">
+                      {runError}
+                    </div>
+                  )}
+                  {judgeResult && (
+                    <>
+                      <div
+                        className={`flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-[11.5px] ${
+                          judgeResult.passed
+                            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+                            : "border-rose-500/25 bg-rose-500/10 text-rose-300"
+                        }`}
+                      >
+                        <span className="font-semibold">
+                          {submissionMessage
+                            ? `${submissionMessage} ${judgeResult.verdict}`
+                            : judgeResult.verdict}
                         </span>
-                        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--hg-dim)]">
-                          {item.input.split("\n")[0] || "(empty input)"}
-                        </span>
-                        <span className="shrink-0 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--hg-dim)]">
-                          Pending
+                        <span>
+                          {judgeResult.passedCount}/{judgeResult.totalTestCases} cases passed
                         </span>
                       </div>
-                    ))}
-                  </div>
+                      <div className="mt-2 divide-y divide-[var(--hg-border)] overflow-hidden rounded-lg border border-[var(--hg-border)]">
+                        {judgeResult.results.map((result) => (
+                          <div key={result.testCase} className="px-3 py-2.5">
+                            <div className="flex items-center gap-3">
+                              <span className="shrink-0 font-mono text-[11px] font-semibold text-[var(--hg-muted)]">
+                                Case {result.testCase}
+                              </span>
+                              <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--hg-dim)]">
+                                {result.time ? `${result.time}s` : ""}
+                                {result.memory ? ` · ${result.memory} KB` : ""}
+                              </span>
+                              <span
+                                className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                  result.passed
+                                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                                    : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                                }`}
+                              >
+                                {result.passed ? "Passed" : result.verdict}
+                              </span>
+                            </div>
+                            {(result.compileError || result.runtimeError || result.output) && (
+                              <pre className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded bg-black/20 p-2 font-mono text-[10px] leading-relaxed text-[var(--hg-muted)]">
+                                {result.compileError ??
+                                  result.runtimeError ??
+                                  result.output}
+                              </pre>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

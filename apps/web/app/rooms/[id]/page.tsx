@@ -8,6 +8,7 @@ import { getSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/prisma"
 import LoadQuestions from "@/components/room/LoadQuestions"
 import { getProblem } from "@/lib/actions"
+import { ProjectSubmissionForm } from "@/components/room/project-submission-form"
 
 export const metadata: Metadata = {
   title: "Room | HackGuard AI",
@@ -29,6 +30,29 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
 
   const isLive = hackathon.type === "live"
 
+  const registration =
+    hackathon.type === "standard" && session.role === "candidate"
+      ? await prisma.registration.findUnique({
+          where: {
+            hackathonId_userId: {
+              hackathonId: hackathon.id,
+              userId: session.userId,
+            },
+          },
+          include: {
+            members: {
+              where: { isLeader: true },
+              select: { email: true },
+              take: 1,
+            },
+            projectSubmissions: {
+              orderBy: { submittedAt: "desc" },
+              select: { projectZipUrl: true, githubRepoUrl: true },
+              take: 1,
+            },
+          },
+        })
+      : null
 
   const problems = await getProblem(id);
 
@@ -76,6 +100,33 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
         <p className="mt-4 max-w-2xl text-[13px] leading-relaxed text-[var(--hg-muted)]">
           {hackathon.description}
         </p>
+
+        {hackathon.type === "standard" && (
+          <section className="mt-8 rounded-xl border border-[var(--hg-border)] bg-[var(--hg-surface)] p-5">
+            <h2 className="text-[15px] font-semibold text-[var(--hg-text)]">
+              Problem Statement
+            </h2>
+            <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--hg-muted)]">
+              {hackathon.problemStatement || "No problem statement has been published."}
+            </p>
+          </section>
+        )}
+
+        {hackathon.type === "standard" &&
+          (registration?.members[0] ? (
+            <ProjectSubmissionForm
+              hackathonId={hackathon.id}
+              registrationId={registration.id}
+              teamName={registration.teamName ?? ""}
+              teamLeaderEmail={registration.members[0].email}
+              projectZipUrl={registration.projectSubmissions[0]?.projectZipUrl}
+              githubRepoUrl={registration.projectSubmissions[0]?.githubRepoUrl}
+            />
+          ) : session.role === "candidate" ? (
+            <p className="mt-8 rounded-xl border border-dashed border-[var(--hg-border)] p-5 text-[12px] text-[var(--hg-dim)]">
+              Register for this standard hackathon to set up your team and submit a project.
+            </p>
+          ) : null)}
 
         <div className="mt-8 overflow-hidden rounded-xl border border-[var(--hg-border)] bg-[var(--hg-surface)]">
           <div className="flex items-center gap-2 border-b border-[var(--hg-border)] bg-[var(--hg-bg)]/60 px-5 py-3">

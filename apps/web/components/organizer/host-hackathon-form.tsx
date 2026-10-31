@@ -26,6 +26,7 @@ const items = [
 export function HostHackathonForm({ session }: { session: SessionView }) {
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+  const [hackathonType, setHackathonType] = useState("")
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -90,7 +91,11 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
             </Field.Root>
             <Field.Root className="flex flex-col gap-1.5">
               <Label className="text-[11px] font-semibold text-[var(--hg-text)]">Hackathon Type</Label>
-              <Select items={items} name="type">
+              <Select
+                items={items}
+                name="type"
+                onValueChange={(value) => setHackathonType(String(value ?? ""))}
+              >
                 <SelectTrigger className="h-10 w-full rounded-md border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[13px] text-[var(--hg-text)] data-placeholder:text-[var(--hg-dim)]">
                   <SelectValue placeholder="Choose your type" />
                 </SelectTrigger>
@@ -104,6 +109,44 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
               </Select>
             </Field.Root>
           </div>
+
+          {hackathonType === "standard" && (
+            <>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Field.Root className="flex flex-col gap-1.5">
+                  <Label className="text-[11px] font-semibold text-[var(--hg-text)]">Start time</Label>
+                  <Input
+                    type="time"
+                    name="startTime"
+                    required
+                    className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark]"
+                  />
+                </Field.Root>
+                <Field.Root className="flex flex-col gap-1.5">
+                  <Label className="text-[11px] font-semibold text-[var(--hg-text)]">End time</Label>
+                  <Input
+                    type="time"
+                    name="endTime"
+                    required
+                    className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark]"
+                  />
+                </Field.Root>
+              </div>
+
+              <Field.Root className="auth-field mt-4">
+                <Label className="text-[11px] font-semibold text-[var(--hg-text)]">
+                  Problem Statement
+                </Label>
+                <textarea
+                  name="problemStatement"
+                  required
+                  rows={5}
+                  placeholder="Describe the challenge teams will solve."
+                  className="w-full resize-y rounded-lg border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 py-2.5 text-[13px] text-[var(--hg-text)] outline-none transition-colors placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50"
+                />
+              </Field.Root>
+            </>
+          )}
 
           <Field.Root className="auth-field mt-4">
             <Label className="text-[11px] font-semibold text-[var(--hg-text)]">

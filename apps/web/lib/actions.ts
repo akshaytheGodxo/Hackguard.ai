@@ -1,11 +1,12 @@
 "use server"
 
+import { Prisma } from "@prisma/client"
 import bcrypt from "bcryptjs"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { MAX_TEAM_SIZE, type TeamMember } from "@/lib/api/hackathons"
 import { isRole, ROLE_HOME, type Role } from "@/lib/auth/roles"
-import { createSession, getSession, updateSessionRole } from "@/lib/auth/session"
+import { clearSession, createSession, getSession, updateSessionRole } from "@/lib/auth/session"
 import { prisma } from "@/lib/prisma"
 
 type ActionResult = { error: string } | undefined
@@ -70,12 +71,34 @@ export async function hostHackathon(formData: FormData): Promise<ActionResult> {
   if (!session) redirect("/sign-in")
   if (session.role !== "organizer") redirect(ROLE_HOME[session.role])
 
+  const organizer = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true },
+  })
+  if (!organizer) {
+    await clearSession()
+    return { error: "Your account could not be found. Please sign in again." }
+  }
+
   const name = String(formData.get("name") ?? "").trim()
   const date = String(formData.get("date") ?? "")
   const description = String(formData.get("description") ?? "").trim()
+  const problemStatement = String(formData.get("problemStatement") ?? "").trim()
+  const startTime = String(formData.get("startTime") ?? "")
+  const endTime = String(formData.get("endTime") ?? "")
   const type = String(formData.get("type") ?? "").trim()
   if (!name || !date || !description) return { error: "All fields are required." }
   if (type !== "standard" && type !== "live") return { error: "Choose a hackathon type." }
+  if (type === "standard" && !problemStatement) {
+    return { error: "Add a problem statement for standard hackathons." }
+  }
+  const isValidTime = (time: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(time)
+  if (
+    type === "standard" &&
+    (!isValidTime(startTime) || !isValidTime(endTime))
+  ) {
+    return { error: "Choose a valid start and end time for the hackathon." }
+  }
 
   const parsed = new Date(`${date}T09:00:00`)
   if (Number.isNaN(parsed.getTime())) return { error: "Pick a valid start date." }
@@ -84,7 +107,10 @@ export async function hostHackathon(formData: FormData): Promise<ActionResult> {
     data: {
       name,
       date: parsed,
+      startTime: type === "standard" ? startTime : null,
+      endTime: type === "standard" ? endTime : null,
       description,
+      problemStatement: type === "standard" ? problemStatement : null,
       status: "Upcoming",
       type,
       organizerId: session.userId,
@@ -97,43 +123,100 @@ export async function hostHackathon(formData: FormData): Promise<ActionResult> {
 
 export async function registerForHackathon(
   hackathonId: string,
+  teamName: string,
   members: TeamMember[],
 ): Promise<ActionResult> {
   const session = await getSession()
   if (!session) redirect("/sign-in")
+  if (session.role !== "candidate") return { error: "Only candidates can register." }
 
-  const team = members
-    .slice(0, MAX_TEAM_SIZE)
-    .map((member) => ({ name: member.name.trim(), email: member.email.trim().toLowerCase() }))
-    .filter((member) => member.name !== "" && member.email !== "")
+  if (
+    typeof hackathonId !== "string" ||
+    !Array.isArray(members) ||
+    typeof teamName !== "string"
+  ) {
+    return { error: "Invalid team registration details." }
+  }
 
-  if (team.length === 0) return { error: "Add the team leader before registering." }
+  const normalizedTeamName = teamName.trim()
+  if (!normalizedTeamName || normalizedTeamName.length > 100) {
+    return { error: "Team name must contain 1–100 characters." }
+  }
 
-  const existing = await prisma.registration.findUnique({
-    where: { hackathonId_userId: { hackathonId, userId: session.userId } },
+  if (members.length === 0 || members.length > MAX_TEAM_SIZE) {
+    return { error: `A team must have 1–${MAX_TEAM_SIZE} members.` }
+  }
+
+  const team: TeamMember[] = []
+  for (const member of members) {
+    if (
+      !member ||
+      typeof member.name !== "string" ||
+      typeof member.email !== "string"
+    ) {
+      return { error: "Each team member needs a name and email address." }
+    }
+
+    const name = member.name.trim()
+    const email = member.email.trim().toLowerCase()
+    if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return { error: "Each team member needs a name and valid email address." }
+    }
+    team.push({ name, email })
+  }
+
+  const hackathon = await prisma.hackathon.findUnique({
+    where: { id: hackathonId },
+    select: { type: true, status: true },
   })
-  if (existing) return { error: "You are already registered for this hackathon." }
+  if (!hackathon) return { error: "Hackathon not found." }
+  if (hackathon.type !== "standard") {
+    return { error: "Team registration is only available for standard hackathons." }
+  }
+  if (hackathon.status === "Completed") {
+    return { error: "Registration for this hackathon is closed." }
+  }
 
-  await prisma.$transaction([
-    prisma.registration.create({
-      data: {
-        hackathonId,
-        userId: session.userId,
-        members: {
-          create: team.map((member, index) => ({
-            name: member.name,
-            email: member.email,
-            isLeader: index === 0,
-            position: index,
-          })),
+  try {
+    const existing = await prisma.registration.findUnique({
+      where: { hackathonId_userId: { hackathonId, userId: session.userId } },
+      select: { id: true },
+    })
+    if (existing) return { error: "You are already registered for this hackathon." }
+
+    await prisma.$transaction(async (transaction) => {
+      await transaction.registration.create({
+        data: {
+          hackathonId,
+          userId: session.userId,
+          teamName: normalizedTeamName,
+          members: {
+            create: team.map((member, index) => ({
+              name: member.name,
+              email: member.email,
+              isLeader: index === 0,
+              position: index,
+            })),
+          },
         },
-      },
-    }),
-    prisma.hackathon.update({
-      where: { id: hackathonId },
-      data: { participants: { increment: team.length } },
-    }),
-  ])
+      })
+
+      await transaction.hackathon.update({
+        where: { id: hackathonId },
+        data: { participants: { increment: team.length } },
+      })
+    })
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { error: "You are already registered for this hackathon." }
+    }
+
+    console.error("Team registration failed:", error)
+    return { error: "Unable to register your team. Please try again." }
+  }
 
   revalidatePath("/events")
 }
@@ -189,7 +272,7 @@ export async function getProblemWithTestcase(id:string) {
     },
     include: {
       testcases: true,
-      hackathon: { select: { name: true } },
+      hackathon: { select: { name: true, type: true } },
     }
   })
 

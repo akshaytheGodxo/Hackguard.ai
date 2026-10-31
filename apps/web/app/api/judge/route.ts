@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -11,6 +10,8 @@ const LANGUAGE_IDS: Record<string, number> = {
   python: 71,
   java: 62,
   javascript: 63,
+  go: 60,
+  rust: 73,
 };
 
 const MAX_CODE_LENGTH = 100_000;
@@ -141,14 +142,29 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Request body must be valid JSON" },
+        { status: 400 }
+      );
+    }
+
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return NextResponse.json(
+        { error: "Request body must be an object" },
+        { status: 400 }
+      );
+    }
 
     const {
       problemId,
       sourceCode,
       language,
       registrationId,
-    } = body;
+    } = body as Record<string, unknown>;
 
     if (
       typeof problemId !== "string" ||
@@ -171,18 +187,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const languageId = LANGUAGE_IDS[language];
+    const languageId = Object.hasOwn(LANGUAGE_IDS, language)
+      ? LANGUAGE_IDS[language]
+      : undefined;
 
-    if (!languageId) {
+    if (typeof languageId !== "number") {
       return NextResponse.json(
         { error: "Unsupported language" },
         { status: 400 }
       );
-    }
-
-    if (!process.env.JUDGE0_URL && !process.env.JUDGE0_API_KEY) {
-      // The default public URL is usable without a key on
-      // instances that permit unauthenticated submissions.
     }
 
     const problem = await prisma.problem.findUnique({
@@ -267,6 +280,7 @@ export async function POST(request: Request) {
           testCase: index + 1,
           verdict: result.status.description,
           passed: result.status.id === 3,
+          output: result.stdout?.slice(0, 3000) ?? null,
           time: result.time,
           memory: result.memory,
           ...(result.status.id === 6
@@ -275,7 +289,7 @@ export async function POST(request: Request) {
                   result.compile_output?.slice(0, 3000) ?? null,
               }
             : {}),
-          ...(result.status.id >= 7 && result.status.id <= 12
+          ...(result.status.id !== 6 && result.stderr
             ? {
                 runtimeError:
                   result.stderr?.slice(0, 1000) ?? null,

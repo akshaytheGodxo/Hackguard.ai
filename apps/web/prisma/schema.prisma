@@ -103,33 +103,55 @@ model Problem {
 }
 
 model Hackathon {
-  id            String          @id @default(cuid())
-  name          String
-  date          DateTime
-  description   String
-  status        HackathonStatus @default(Upcoming)
-  participants  Int             @default(0)
-  submissions   Int             @default(0)
-  organizer     User            @relation("HackathonOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
-  organizerId   String
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  type          HackathonType   @default(standard)
-  problems      Problem[]
-  registrations Registration[]
+  id                 String              @id @default(cuid())
+  name               String
+  date               DateTime
+  startTime          String?
+  endTime            String?
+  description        String
+  problemStatement   String?             @db.Text
+  status             HackathonStatus     @default(Upcoming)
+  participants       Int                 @default(0)
+  submissions        Int                 @default(0)
+  organizer          User                @relation("HackathonOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  organizerId        String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  type               HackathonType       @default(standard)
+  problems           Problem[]
+  registrations      Registration[]
+  projectSubmissions ProjectSubmission[]
 }
 
 model Registration {
-  id          String               @id @default(cuid())
-  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  hackathon   Hackathon            @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
-  hackathonId String
-  members     RegistrationMember[]
-  createdAt   DateTime             @default(now())
-  submissions Submission[]
+  id                 String               @id @default(cuid())
+  teamName           String?
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String
+  hackathon          Hackathon            @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  hackathonId        String
+  members            RegistrationMember[]
+  projectSubmissions ProjectSubmission[]
+  createdAt          DateTime             @default(now())
+  submissions        Submission[]
 
   @@unique([hackathonId, userId])
+}
+
+model ProjectSubmission {
+  id              String       @id @default(cuid())
+  projectZipUrl   String       @db.Text
+  githubRepoUrl   String
+  teamLeaderEmail String
+  teamName        String
+  submittedAt     DateTime     @default(now())
+  hackathonId     String
+  hackathon       Hackathon    @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  registrationId  String
+  registration    Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([hackathonId, submittedAt])
+  @@index([registrationId, submittedAt])
 }
 
 model RegistrationMember {
