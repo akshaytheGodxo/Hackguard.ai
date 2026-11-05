@@ -82,12 +82,13 @@ export async function hostHackathon(formData: FormData): Promise<ActionResult> {
 
   const name = String(formData.get("name") ?? "").trim()
   const date = String(formData.get("date") ?? "")
+  const enddate = String(formData.get("enddate") ?? "")
   const description = String(formData.get("description") ?? "").trim()
   const problemStatement = String(formData.get("problemStatement") ?? "").trim()
   const startTime = String(formData.get("startTime") ?? "")
   const endTime = String(formData.get("endTime") ?? "")
   const type = String(formData.get("type") ?? "").trim()
-  if (!name || !date || !description) return { error: "All fields are required." }
+  if (!name || !date || !enddate || !description) return { error: "All fields are required." }
   if (type !== "standard" && type !== "live") return { error: "Choose a hackathon type." }
   if (type === "standard" && !problemStatement) {
     return { error: "Add a problem statement for standard hackathons." }
@@ -103,10 +104,14 @@ export async function hostHackathon(formData: FormData): Promise<ActionResult> {
   const parsed = new Date(`${date}T09:00:00`)
   if (Number.isNaN(parsed.getTime())) return { error: "Pick a valid start date." }
 
+  const parsedEnd = new Date(`${enddate}T09:00:00`)
+  if (Number.isNaN(parsed.getTime())) return {error: "Pick a valid end date."}
+
   await prisma.hackathon.create({
     data: {
       name,
       date: parsed,
+      enddate: parsedEnd,
       startTime: type === "standard" ? startTime : null,
       endTime: type === "standard" ? endTime : null,
       description,

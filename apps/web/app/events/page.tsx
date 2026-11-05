@@ -37,6 +37,7 @@ export default async function EventsPage() {
     id: hackathon.id,
     name: hackathon.name,
     date: formatHackathonDate(hackathon.date),
+    endDate: formatHackathonDate(hackathon.enddate),
     startAt: getHackathonStartAt(hackathon.date, hackathon.startTime),
     startTime: hackathon.startTime,
     endTime: hackathon.endTime,

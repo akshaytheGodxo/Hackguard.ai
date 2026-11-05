@@ -18,6 +18,7 @@ export type Hackathon = {
   id: string
   name: string
   date: string
+  endDate: string
   startAt: string | null
   startTime: string | null
   endTime: string | null

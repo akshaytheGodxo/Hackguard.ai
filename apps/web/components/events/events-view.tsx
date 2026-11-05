@@ -101,7 +101,7 @@ function HackathonCard({
       <p className="mt-1 text-[12px] text-[var(--hg-dim)]">
         {hackathon.date}
         {hackathon.startTime && hackathon.endTime
-          ? ` · ${hackathon.startTime}–${hackathon.endTime}`
+          ? ` · ${hackathon.startTime}–${hackathon.endDate} · ${hackathon.endTime}`
           : ""}
         {" · "}hosted by {hackathon.organizer}
       </p>

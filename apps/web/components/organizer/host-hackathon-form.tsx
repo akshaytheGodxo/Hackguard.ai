@@ -33,9 +33,10 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
     const data = new FormData(e.currentTarget)
     const name = String(data.get("name") ?? "").trim()
     const date = String(data.get("date") ?? "")
+    const enddate = String(data.get("enddate") ?? "")
     const description = String(data.get("description") ?? "").trim()
     const type = String(data.get("type")??"").trim()
-    if (!name || !date || !description || !type) return
+    if (!name || !date || !description || !type || !enddate) return
 
     startTransition(async () => {
       const result = await hostHackathon(data)
@@ -85,6 +86,15 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
               <Input
                 type="date"
                 name="date"
+                required
+                className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark]"
+              />
+            </Field.Root>
+            <Field.Root className="flex flex-col gap-1.5">
+              <Label className="text-[11px] font-semibold text-[var(--hg-text)]">End date</Label>
+              <Input
+                type="date"
+                name="enddate"
                 required
                 className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark]"
               />

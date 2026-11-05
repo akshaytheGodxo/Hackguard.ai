@@ -106,6 +106,7 @@ model Hackathon {
   id                 String              @id @default(cuid())
   name               String
   date               DateTime
+  enddate            DateTime
   startTime          String?
   endTime            String?
   description        String
