@@ -40,11 +40,6 @@ def preprocess_source(source: str, language: str) -> str:
 
     for token_type, value in lex(source, lexer):
 
-        # Remove comments.
-        if token_type in Comment:
-            continue
-
-        # Ignore whitespace.
         if token_type in Comment or not value.strip():
             continue
 

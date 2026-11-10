@@ -6,8 +6,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from app.repository.parser import RepositoryFile
 from app.repository.preprocessor import preprocess_source
-
-
+from app.similarity.token import calculate_token_similarity
+from scipy.optimize import linear_sum_assignment
 @dataclass
 class FileMatch:
     file_a: str
@@ -25,6 +25,7 @@ class RepositoryComparison:
 def compare_repositories(
     files_a: list[RepositoryFile],
     files_b: list[RepositoryFile],
+    reference_files: list[RepositoryFile] | None = None,
 ) -> RepositoryComparison:
 
     if not files_a or not files_b:
@@ -69,61 +70,77 @@ def compare_repositories(
         if not a_docs or not b_docs:
             continue
 
-        texts = [doc["content"] for doc in documents]
+        
+        reference_texts = [
+            preprocess_source(file.content, file.language)
+            for file in (reference_files or [])
+            if file.language == language
+        ]
+        
+        reference_count = len(reference_texts)
+                
+        # Reference documents come first.
+        texts = reference_texts + [
+            doc["content"] for doc in documents
+        ]
+
+        max_document_frequency = (
+            0.85 if reference_count >= 5 else 1.0
+        )
 
         vectorizer = TfidfVectorizer(
             analyzer="char",
             ngram_range=(3, 5),
             sublinear_tf=True,
             lowercase=False,
+            max_df=max_document_frequency,
         )
 
         try:
             vectors = vectorizer.fit_transform(texts)
         except ValueError:
-            # No usable character features.
             continue
+        
+        a_positions = [
+            reference_count + position
+            for position, _ in a_docs
+        ]
 
-        a_positions = [position for position, _ in a_docs]
-        b_positions = [position for position, _ in b_docs]
+        b_positions = [
+            reference_count + position
+            for position, _ in b_docs
+        ]
+
 
         similarity_matrix = cosine_similarity(
             vectors[a_positions],
             vectors[b_positions],
         )
 
-        # Find the strongest match for every A file.
-        for row, (position_a, doc_a) in enumerate(a_docs):
 
-            col = int(similarity_matrix[row].argmax())
-            score = float(similarity_matrix[row, col])
+        # Globally assign files using maximum-weight matching.
+        row_indices, col_indices = linear_sum_assignment(
+            similarity_matrix,
+            maximize=True,
+        )
 
-            doc_b = b_docs[col][1]
+        for row, col in zip(row_indices, col_indices):
 
-            original_index = doc_a["index"]
-            best_a[original_index] = score
-
-            key = (
-                doc_a["path"],
-                doc_b["path"],
-                language,
-            )
-
-            matched_pairs[key] = max(
-                matched_pairs.get(key, 0.0),
-                score,
-            )
-
-        # Find the strongest match for every B file.
-        for col, (position_b, doc_b) in enumerate(b_docs):
-
-            row = int(similarity_matrix[:, col].argmax())
             score = float(similarity_matrix[row, col])
 
             doc_a = a_docs[row][1]
+            doc_b = b_docs[col][1]
 
-            original_index = doc_b["index"]
-            best_b[original_index] = score
+            original_index_a = doc_a["index"]
+            original_index_b = doc_b["index"]
+
+            # Ignore weak matches.
+            # This threshold is provisional and needs calibration.
+            if score < 0.15:
+                continue
+
+            best_a[original_index_a] = score
+            best_b[original_index_b] = score
 
             key = (
                 doc_a["path"],
@@ -131,10 +148,7 @@ def compare_repositories(
                 language,
             )
 
-            matched_pairs[key] = max(
-                matched_pairs.get(key, 0.0),
-                score,
-            )
+            matched_pairs[key] = round(score, 4)
 
     # Weight each file by its normalized source size.
     # Cap weights so one enormous file cannot dominate.

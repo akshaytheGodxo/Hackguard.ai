@@ -24,6 +24,14 @@ enum HackathonStatus {
   Completed
 }
 
+enum AnalysisStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model TestCase {
   tid     String  @id @default(cuid())
   input   String
@@ -122,6 +130,10 @@ model Hackathon {
   problems           Problem[]
   registrations      Registration[]
   projectSubmissions ProjectSubmission[]
+
+  analysisStatus      AnalysisStatus @default(PENDING)
+  analysisStartedAt   DateTime?
+  analysisCompletedAt DateTime?
 }
 
 model Registration {
