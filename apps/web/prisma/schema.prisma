@@ -131,9 +131,11 @@ model Hackathon {
   registrations      Registration[]
   projectSubmissions ProjectSubmission[]
 
-  analysisStatus      AnalysisStatus @default(PENDING)
-  analysisStartedAt   DateTime?
-  analysisCompletedAt DateTime?
+  analysisStatus              AnalysisStatus               @default(PENDING)
+  analysisStartedAt           DateTime?
+  analysisCompletedAt         DateTime?
+  repositoryPlagiarismReports RepositoryPlagiarismReport[]
+  
 }
 
 model Registration {
@@ -163,10 +165,12 @@ model ProjectSubmission {
   registrationId  String
   registration    Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
 
+  repositoryReportsAsA RepositoryPlagiarismReport[] @relation("RepositoryReportA")
+  repositoryReportsAsB RepositoryPlagiarismReport[] @relation("RepositoryReportB")
+
   @@index([hackathonId, submittedAt])
   @@index([registrationId, submittedAt])
 }
-
 
 model RegistrationMember {
   id             String       @id @default(cuid())
@@ -179,4 +183,28 @@ model RegistrationMember {
   submissions    Submission[]
 
   @@index([registrationId])
+}
+
+model RepositoryPlagiarismReport {
+  id String @id @default(cuid())
+
+  hackathonId String
+  hackathon   Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+
+  submissionAId String
+  submissionA   ProjectSubmission @relation("RepositoryReportA", fields: [submissionAId], references: [id], onDelete: Cascade)
+
+  submissionBId String
+  submissionB   ProjectSubmission @relation("RepositoryReportB", fields: [submissionBId], references: [id], onDelete: Cascade)
+
+  repositorySimilarity Float
+  riskLevel            String
+  filesAnalyzedA       Int
+  filesAnalyzedB       Int
+  matchedFiles         Json
+
+  createdAt DateTime @default(now())
+
+  @@unique([submissionAId, submissionBId])
+  @@index([hackathonId, createdAt])
 }

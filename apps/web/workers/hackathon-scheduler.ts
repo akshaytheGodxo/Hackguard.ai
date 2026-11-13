@@ -36,26 +36,12 @@ async function checkExpiredHackathons() {
 
         const now = new Date();
 
-        if (hackathon.status === "Upcoming" && now >= start && now < end) {
-            await prisma.hackathon.updateMany({
-                where: {
-                    id: hackathon.id,
-                    status: "Upcoming",
-                },
-                data: {
-                    status: "Live",
-                },
-            });
-
-            continue;
-        }
-
-        // Live -> Completed
-        if (hackathon.status === "Live" && now >= end) {
+        // Handle expired hackathons, including those still marked Upcoming.
+        if (now >= end) {
             const claimed = await prisma.hackathon.updateMany({
                 where: {
                     id: hackathon.id,
-                    status: "Live",
+                    status: { in: ["Upcoming", "Live"] },
                     analysisStatus: "PENDING",
                 },
                 data: {
@@ -80,6 +66,21 @@ async function checkExpiredHackathons() {
                     );
                 }
             }
+
+            continue;
+        }
+
+        // Upcoming -> Live
+        if (hackathon.status === "Upcoming" && now >= start) {
+            await prisma.hackathon.updateMany({
+                where: {
+                    id: hackathon.id,
+                    status: "Upcoming",
+                },
+                data: {
+                    status: "Live",
+                },
+            });
         }
     }
 }
