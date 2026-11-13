@@ -100,7 +100,7 @@ async def analyze_repository(
     try:
         files_a = parse_repository_zip(zip_a)
         files_b = parse_repository_zip(zip_b)
-
+        
         comparison = compare_repositories(files_a, files_b)
 
     except ValueError as error:

@@ -65,7 +65,8 @@ function HackathonCard({
   const registered = Boolean(registration)
   const closed = hackathon.status === "Completed"
   const [startedAt, setStartedAt] = useState<string | null>(null)
-
+  console.log(hackathon.endDate)
+  console.log(hackathon.endTime)
   useEffect(() => {
     if (!hackathon.startAt) return
     const startTime = Date.parse(hackathon.startAt)

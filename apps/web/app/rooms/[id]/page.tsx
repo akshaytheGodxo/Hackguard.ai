@@ -47,7 +47,7 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
             },
             projectSubmissions: {
               orderBy: { submittedAt: "desc" },
-              select: { projectZipUrl: true, githubRepoUrl: true },
+              select: { githubRepoUrl: true },
               take: 1,
             },
           },
@@ -119,7 +119,6 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
               registrationId={registration.id}
               teamName={registration.teamName ?? ""}
               teamLeaderEmail={registration.members[0].email}
-              projectZipUrl={registration.projectSubmissions[0]?.projectZipUrl}
               githubRepoUrl={registration.projectSubmissions[0]?.githubRepoUrl}
             />
           ) : session.role === "candidate" ? (

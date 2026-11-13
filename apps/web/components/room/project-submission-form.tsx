@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
+import { useState, type ChangeEvent, type FormEvent } from "react"
 
 type Props = {
   hackathonId: string
   registrationId: string
   teamName: string
   teamLeaderEmail: string
-  projectZipUrl?: string
   githubRepoUrl?: string
 }
 
@@ -16,15 +15,18 @@ export function ProjectSubmissionForm({
   registrationId,
   teamName: initialTeamName,
   teamLeaderEmail,
-  projectZipUrl: initialProjectZipUrl = "",
   githubRepoUrl: initialGithubRepoUrl = "",
 }: Props) {
   const [teamName, setTeamName] = useState(initialTeamName)
-  const [projectZipUrl, setProjectZipUrl] = useState(initialProjectZipUrl)
+  const [projectZipFile, setProjectZipFile] = useState<File | null>(null)
   const [githubRepoUrl, setGithubRepoUrl] = useState(initialGithubRepoUrl)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  function handleZipChange(event: ChangeEvent<HTMLInputElement>) {
+    setProjectZipFile(event.target.files?.[0] ?? null)
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -35,16 +37,20 @@ export function ProjectSubmissionForm({
     setSuccess(null)
 
     try {
+      if (!projectZipFile) {
+        throw new Error("Choose a ZIP file to submit.")
+      }
+
+      const formData = new FormData()
+      formData.set("hackathonId", hackathonId)
+      formData.set("registrationId", registrationId)
+      formData.set("teamName", teamName)
+      formData.set("projectZipFile", projectZipFile)
+      formData.set("githubRepoUrl", githubRepoUrl)
+
       const response = await fetch("/api/project-submissions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          hackathonId,
-          registrationId,
-          teamName,
-          projectZipUrl,
-          githubRepoUrl,
-        }),
+        body: formData,
       })
 
       let payload: unknown
@@ -64,7 +70,7 @@ export function ProjectSubmissionForm({
             : "Project submission failed."
         throw new Error(message)
       }
-
+      setSuccess("Project submitted successfully.")
       setSuccess("Project submitted successfully.")
     } catch (submitError) {
       setError(
@@ -83,7 +89,7 @@ export function ProjectSubmissionForm({
         Submit your project
       </h2>
       <p className="mt-1 text-[12px] text-[var(--hg-dim)]">
-        Provide a ZIP URL or storage key and your GitHub repository link.
+        Upload your project as a ZIP file (up to 50 MB) and provide your GitHub repository link.
       </p>
 
       <form className="mt-4 grid gap-4" onSubmit={handleSubmit}>
@@ -103,15 +109,20 @@ export function ProjectSubmissionForm({
         </p>
 
         <label className="grid gap-1.5 text-[11px] font-semibold text-[var(--hg-muted)]">
-          Project ZIP URL or storage key
+          Project ZIP file
           <input
+            type="file"
+            accept=".zip,application/zip,application/x-zip-compressed"
             required
-            maxLength={2_048}
-            value={projectZipUrl}
-            onChange={(event) => setProjectZipUrl(event.target.value)}
-            placeholder="https://storage.example.com/project.zip"
-            className="h-10 rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[13px] text-[var(--hg-text)] outline-none placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50"
+            onChange={handleZipChange}
+            className="sr-only"
           />
+          <span className="inline-flex h-10 w-fit cursor-pointer items-center rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[12px] font-semibold text-[var(--hg-text)] transition-colors hover:border-[var(--hg-cyan)]/50">
+            Choose ZIP file
+          </span>
+          <span aria-live="polite" className="text-[11px] font-normal text-[var(--hg-dim)]">
+            {projectZipFile?.name || "No file selected"}
+          </span>
         </label>
 
         <label className="grid gap-1.5 text-[11px] font-semibold text-[var(--hg-muted)]">
