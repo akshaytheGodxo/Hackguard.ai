@@ -97,6 +97,16 @@ export function OrganizerView({
                   </span>
                 </div>
 
+                {hackathon.type === "standard" && (
+                  <Link
+                    href={`/organizer/hackathons/${hackathon.id}/plagiarism`}
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--hg-cyan)]/30 bg-[var(--hg-cyan)]/5 px-3 py-2 text-[12px] font-semibold text-[var(--hg-cyan)] transition-colors hover:bg-[var(--hg-cyan)]/10"
+                  >
+                    <ShieldAlert className="size-3.5" />
+                    Repository analysis
+                  </Link>
+                )}
+
                 {hackathon.type === "live" && (
                   <div className="mt-4 border-t border-[var(--hg-border)] pt-4">
                     {addingTo !== hackathon.id ? (

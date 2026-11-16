@@ -1,4 +1,3 @@
-
 import { Worker } from "bullmq";
 import { connection } from "@/lib/queue/connection";
 import type { AnalysisJob } from "../lib/queue/analysis-queue";
