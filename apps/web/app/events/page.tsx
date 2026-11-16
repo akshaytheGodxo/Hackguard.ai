@@ -22,16 +22,17 @@ export default async function EventsPage() {
   if (!session) redirect("/sign-in")
   if (session.role !== "candidate") redirect(ROLE_HOME[session.role])
 
-  const [hackathons, registrations] = await Promise.all([
-    prisma.hackathon.findMany({
-      orderBy: { createdAt: "desc" },
-      include: { organizer: { select: { name: true } } },
-    }),
-    prisma.registration.findMany({
-      where: { userId: session.userId },
-      include: { members: true },
-    }),
-  ])
+  const hackathons = await prisma.hackathon.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { organizer: { select: { name: true } } },
+  })
+  const registrations =
+    hackathons.length === 0
+      ? []
+      : await prisma.registration.findMany({
+          where: { userId: session.userId },
+          include: { members: true },
+        })
 
   const hackathonViews: Hackathon[] = hackathons.map((hackathon) => ({
     id: hackathon.id,
