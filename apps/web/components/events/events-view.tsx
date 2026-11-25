@@ -75,27 +75,25 @@ function HackathonCard({
 }) {
   const registered = Boolean(registration)
   const closed = hackathon.status === "Completed"
-  const [startedAt, setStartedAt] = useState<string | null>(null)
+  const [now, setNow] = useState<number | null>(null)
   useEffect(() => {
-    if (!hackathon.startAt) return
-    const startTime = Date.parse(hackathon.startAt)
-    if (!Number.isFinite(startTime)) return
-
+    const startTime = hackathon.startAt ? Date.parse(hackathon.startAt) : Number.NaN
     let timeout: number
-    function scheduleStart() {
-      const delay = Math.max(startTime - Date.now(), 0)
-      timeout = window.setTimeout(() => {
-        if (Date.now() >= startTime) setStartedAt(hackathon.startAt)
-        else scheduleStart()
-      }, Math.min(delay, 2_147_000_000))
+    function updateClock() {
+      const currentTime = Date.now()
+      setNow(currentTime)
+      if (Number.isFinite(startTime) && currentTime < startTime) {
+        timeout = window.setTimeout(updateClock, Math.min(startTime - currentTime, 2_147_000_000))
+      }
     }
 
-    scheduleStart()
+    updateClock()
     return () => window.clearTimeout(timeout)
   }, [hackathon.startAt])
-  const hasStarted = hackathon.startAt
-    ? startedAt === hackathon.startAt
-    : hackathon.status === "Live"
+  const hasStarted =
+    hackathon.status === "Live" ||
+    (now !== null && Number.isFinite(Date.parse(hackathon.startAt ?? "")) &&
+      now >= Date.parse(hackathon.startAt ?? ""))
   const joinAvailable = !closed && hasStarted
   const schedule = hackathon.startTime && hackathon.endTime
     ? `${hackathon.date}${hackathon.endDate !== hackathon.date ? ` – ${hackathon.endDate}` : ""} · ${formatEventTime(hackathon.startTime)}–${formatEventTime(hackathon.endTime)}`
