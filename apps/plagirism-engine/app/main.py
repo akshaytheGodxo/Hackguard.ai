@@ -67,8 +67,12 @@ def analyze_batch(request: BatchAnalyzeRequest):
 
 @app.post("/analyze/repository")
 async def analyze_repository(
-    repository_a: UploadFile = File(...),
-    repository_b: UploadFile = File(...),
+    repository_a: UploadFile = File(
+        ..., json_schema_extra={"format": "binary"}
+    ),
+    repository_b: UploadFile = File(
+        ..., json_schema_extra={"format": "binary"}
+    ),
 ):
     if not repository_a.filename or not repository_b.filename:
         raise HTTPException(

@@ -15,7 +15,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const fieldClass =
   "h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] placeholder:text-[var(--hg-dim)]"
 const labelClass = "text-[11px] font-semibold text-[var(--hg-text)]"
-const fieldLabelClass = "text-[10px] font-medium text-[var(--hg-dim)]"
+const fieldLabelClass = "text-[11px] font-medium text-[var(--hg-dim)]"
 
 export function RegisterModal({
   hackathon,
@@ -117,7 +117,7 @@ export function RegisterModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="register-modal-title"
-        className="hg-pop-in relative z-10 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--hg-border-strong)] bg-[var(--hg-surface)] p-6 shadow-[0_25px_80px_rgba(0,0,0,0.5)]"
+        className="hg-pop-in relative z-10 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--hg-border-strong)] bg-[var(--hg-surface)] p-4 shadow-[0_25px_80px_rgba(0,0,0,0.5)] sm:p-6"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -146,9 +146,10 @@ export function RegisterModal({
 
         <form className="mt-5" onSubmit={handleSubmit} noValidate>
           <Field.Root className="mb-5 flex flex-col gap-1.5">
-            <Label className={labelClass}>Team name</Label>
+            <Label htmlFor="registration-team-name" className={labelClass}>Team name</Label>
             <Input
               autoFocus
+              id="registration-team-name"
               name="team-name"
               placeholder="e.g. Byte Builders"
               value={teamName}
@@ -161,8 +162,9 @@ export function RegisterModal({
           <span className={labelClass}>Team leader</span>
           <div className="mt-2 grid gap-3 sm:grid-cols-2">
             <Field.Root className="flex flex-col gap-1.5">
-              <Label className={fieldLabelClass}>Name</Label>
+              <Label htmlFor="registration-leader-name" className={fieldLabelClass}>Name</Label>
               <Input
+                id="registration-leader-name"
                 name="leader-name"
                 placeholder="Jane Doe"
                 value={leader.name}
@@ -171,8 +173,9 @@ export function RegisterModal({
               />
             </Field.Root>
             <Field.Root className="flex flex-col gap-1.5">
-              <Label className={fieldLabelClass}>Email</Label>
+              <Label htmlFor="registration-leader-email" className={fieldLabelClass}>Email</Label>
               <Input
+                id="registration-leader-email"
                 type="email"
                 name="leader-email"
                 placeholder="jane@team.com"
@@ -208,22 +211,30 @@ export function RegisterModal({
                   <CircleMinus className="size-4" />
                 </button>
               </div>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                <Input
-                  name={`member-${index}-name`}
-                  placeholder="Name"
-                  value={member.name}
-                  onChange={(event) => updateMember(index, { name: event.target.value })}
-                  className={fieldClass}
-                />
-                <Input
-                  type="email"
-                  name={`member-${index}-email`}
-                  placeholder="Email"
-                  value={member.email}
-                  onChange={(event) => updateMember(index, { email: event.target.value })}
-                  className={fieldClass}
-                />
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                <Field.Root className="flex min-w-0 flex-col gap-1.5">
+                  <Label htmlFor={`registration-member-${index}-name`} className={fieldLabelClass}>Name</Label>
+                  <Input
+                    id={`registration-member-${index}-name`}
+                    name={`member-${index}-name`}
+                    placeholder="Jane Doe"
+                    value={member.name}
+                    onChange={(event) => updateMember(index, { name: event.target.value })}
+                    className={fieldClass}
+                  />
+                </Field.Root>
+                <Field.Root className="flex min-w-0 flex-col gap-1.5">
+                  <Label htmlFor={`registration-member-${index}-email`} className={fieldLabelClass}>Email</Label>
+                  <Input
+                    id={`registration-member-${index}-email`}
+                    type="email"
+                    name={`member-${index}-email`}
+                    placeholder="jane@team.com"
+                    value={member.email}
+                    onChange={(event) => updateMember(index, { email: event.target.value })}
+                    className={fieldClass}
+                  />
+                </Field.Root>
               </div>
             </div>
           ))}

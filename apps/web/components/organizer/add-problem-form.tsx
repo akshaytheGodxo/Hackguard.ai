@@ -57,7 +57,7 @@ export function AddProblemForm({
 
   return (
     <form
-      className="rounded-xl border border-[var(--hg-border)] bg-[var(--hg-surface)] p-5"
+      className="min-w-0 rounded-xl border border-[var(--hg-border)] bg-[var(--hg-surface)] p-4 sm:p-5"
       onSubmit={handleSubmit}
     >
       <div className="flex items-start justify-between gap-3">
@@ -84,7 +84,7 @@ export function AddProblemForm({
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Two Sum"
           required
-          className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] placeholder:text-[var(--hg-dim)]"
+          className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] placeholder:text-[var(--hg-dim)] focus-visible:border-[var(--hg-cyan)]/60 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
         />
       </Field.Root>
 
@@ -96,7 +96,7 @@ export function AddProblemForm({
           required
           rows={3}
           placeholder="Describe the problem statement."
-          className="w-full resize-none rounded-lg border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 py-2.5 text-[13px] text-[var(--hg-text)] outline-none transition-colors placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50"
+          className="w-full resize-y rounded-lg border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 py-2.5 text-[13px] text-[var(--hg-text)] outline-none transition-colors placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
         />
       </Field.Root>
 
@@ -112,7 +112,7 @@ export function AddProblemForm({
           {testCases.map((testCase, index) => (
             <div
               key={index}
-              className="grid gap-3 rounded-lg border border-[var(--hg-border)] bg-[var(--hg-bg)]/60 p-3 sm:grid-cols-2"
+              className="grid min-w-0 gap-3 rounded-lg border border-[var(--hg-border)] bg-[var(--hg-bg)]/60 p-3 sm:grid-cols-2"
             >
               <Field.Root className="flex flex-col gap-1.5">
                 <Label className="text-[11px] font-semibold text-[var(--hg-muted)]">
@@ -123,7 +123,7 @@ export function AddProblemForm({
                   onChange={(e) => updateTestCase(index, { input: e.target.value })}
                   rows={2}
                   placeholder="stdin fed to the solution"
-                  className="w-full resize-none rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-2.5 py-2 font-mono text-[12px] text-[var(--hg-text)] outline-none transition-colors placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50"
+                  className="w-full resize-y rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-2.5 py-2 font-mono text-[12px] text-[var(--hg-text)] outline-none transition-colors placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
                 />
               </Field.Root>
               <Field.Root className="flex flex-col gap-1.5">
@@ -145,7 +145,7 @@ export function AddProblemForm({
                   onChange={(e) => updateTestCase(index, { output: e.target.value })}
                   rows={2}
                   placeholder="expected stdout"
-                  className="w-full resize-none rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-2.5 py-2 font-mono text-[12px] text-[var(--hg-text)] outline-none transition-colors placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50"
+                  className="w-full resize-y rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-2.5 py-2 font-mono text-[12px] text-[var(--hg-text)] outline-none transition-colors placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
                 />
               </Field.Root>
             </div>
@@ -170,7 +170,7 @@ export function AddProblemForm({
         </p>
       )}
 
-      <div className="mt-5 flex gap-2">
+      <div className="mt-5 flex flex-wrap gap-2">
         <Button
           type="submit"
           size="sm"

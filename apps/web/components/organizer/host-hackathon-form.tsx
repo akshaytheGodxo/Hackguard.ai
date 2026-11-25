@@ -27,16 +27,25 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const [hackathonType, setHackathonType] = useState("")
+  const [startDate, setStartDate] = useState("")
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    setError(null)
     const data = new FormData(e.currentTarget)
     const name = String(data.get("name") ?? "").trim()
     const date = String(data.get("date") ?? "")
     const enddate = String(data.get("enddate") ?? "")
     const description = String(data.get("description") ?? "").trim()
-    const type = String(data.get("type")??"").trim()
-    if (!name || !date || !description || !type || !enddate) return
+    const type = String(data.get("type") ?? "").trim()
+    if (!name || !date || !description || !type || !enddate) {
+      setError("Complete all required fields before creating your hackathon.")
+      return
+    }
+    if (enddate < date) {
+      setError("The end date must be on or after the start date.")
+      return
+    }
 
     startTransition(async () => {
       const result = await hostHackathon(data)
@@ -48,7 +57,7 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
     <main className="hg-fade-in min-h-screen bg-[var(--hg-bg)]">
       <DashboardHeader session={session} />
 
-      <div className="mx-auto max-w-2xl px-6 py-10">
+      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-10">
         <Link
           href="/organizer"
           className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--hg-muted)] transition-colors hover:text-[var(--hg-text)]"
@@ -65,10 +74,10 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
         </p>
 
         <form
-          className="mt-8 rounded-xl border border-[var(--hg-border)] bg-[var(--hg-surface)] p-6"
+          className="mt-7 rounded-2xl border border-[var(--hg-border)] bg-[var(--hg-surface)] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.12)] sm:p-6"
           onSubmit={handleSubmit}
         >
-          <Field.Root className="auth-field">
+          <Field.Root className="flex flex-col gap-1.5">
             <Label className="text-[11px] font-semibold text-[var(--hg-text)]">
               Hackathon name
             </Label>
@@ -76,7 +85,7 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
               name="name"
               placeholder="e.g. HackSphere 2027"
               required
-              className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] placeholder:text-[var(--hg-dim)]"
+              className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] placeholder:text-[var(--hg-dim)] focus-visible:border-[var(--hg-cyan)]/60 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
             />
           </Field.Root>
 
@@ -87,7 +96,9 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
                 type="date"
                 name="date"
                 required
-                className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark]"
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+                className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark] focus-visible:border-[var(--hg-cyan)]/60 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
               />
             </Field.Root>
             <Field.Root className="flex flex-col gap-1.5">
@@ -96,17 +107,19 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
                 type="date"
                 name="enddate"
                 required
-                className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark]"
+                min={startDate || undefined}
+                className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark] focus-visible:border-[var(--hg-cyan)]/60 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
               />
             </Field.Root>
             <Field.Root className="flex flex-col gap-1.5">
-              <Label className="text-[11px] font-semibold text-[var(--hg-text)]">Hackathon Type</Label>
+                <Label htmlFor="hackathon-type" className="text-[11px] font-semibold text-[var(--hg-text)]">Hackathon type</Label>
               <Select
                 items={items}
                 name="type"
+                required
                 onValueChange={(value) => setHackathonType(String(value ?? ""))}
               >
-                <SelectTrigger className="h-10 w-full rounded-md border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[13px] text-[var(--hg-text)] data-placeholder:text-[var(--hg-dim)]">
+                <SelectTrigger id="hackathon-type" className="h-10 w-full rounded-md border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[13px] text-[var(--hg-text)] data-placeholder:text-[var(--hg-dim)] focus-visible:border-[var(--hg-cyan)]/60 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15">
                   <SelectValue placeholder="Choose your type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -129,7 +142,7 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
                     type="time"
                     name="startTime"
                     required
-                    className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark]"
+                    className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark] focus-visible:border-[var(--hg-cyan)]/60 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
                   />
                 </Field.Root>
                 <Field.Root className="flex flex-col gap-1.5">
@@ -138,12 +151,12 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
                     type="time"
                     name="endTime"
                     required
-                    className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark]"
+                    className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-bg)] text-[13px] text-[var(--hg-text)] [color-scheme:dark] focus-visible:border-[var(--hg-cyan)]/60 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
                   />
                 </Field.Root>
               </div>
 
-              <Field.Root className="auth-field mt-4">
+              <Field.Root className="mt-4 flex flex-col gap-1.5">
                 <Label className="text-[11px] font-semibold text-[var(--hg-text)]">
                   Problem Statement
                 </Label>
@@ -152,13 +165,13 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
                   required
                   rows={5}
                   placeholder="Describe the challenge teams will solve."
-                  className="w-full resize-y rounded-lg border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 py-2.5 text-[13px] text-[var(--hg-text)] outline-none transition-colors placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50"
+                  className="w-full resize-y rounded-lg border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 py-2.5 text-[13px] text-[var(--hg-text)] outline-none transition-colors placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
                 />
               </Field.Root>
             </>
           )}
 
-          <Field.Root className="auth-field mt-4">
+          <Field.Root className="mt-4 flex flex-col gap-1.5">
             <Label className="text-[11px] font-semibold text-[var(--hg-text)]">
               Description
             </Label>
@@ -167,7 +180,7 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
               required
               rows={4}
               placeholder="What is this hackathon about?"
-              className="w-full resize-none rounded-lg border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 py-2.5 text-[13px] text-[var(--hg-text)] outline-none transition-colors placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50"
+              className="w-full resize-y rounded-lg border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 py-2.5 text-[13px] text-[var(--hg-text)] outline-none transition-colors placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
             />
           </Field.Root>
 
@@ -184,7 +197,7 @@ export function HostHackathonForm({ session }: { session: SessionView }) {
             type="submit"
             size="lg"
             disabled={pending}
-            className="hg-gradient-bg mt-4 h-11 w-full rounded-lg! px-4 text-[13px] font-bold text-[#101426] shadow-[0_12px_30px_rgba(109,146,238,0.25)] transition-all hover:-translate-y-px hover:brightness-105"
+            className="hg-gradient-bg mt-4 h-11 w-full rounded-lg! px-4 text-[13px] font-bold text-[#101426] shadow-[0_12px_30px_rgba(109,146,238,0.25)] transition-all hover:-translate-y-px hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <CalendarPlus className="size-4" />
             {pending ? "Creating…" : "Create hackathon"}

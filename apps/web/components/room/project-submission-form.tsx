@@ -71,7 +71,6 @@ export function ProjectSubmissionForm({
         throw new Error(message)
       }
       setSuccess("Project submitted successfully.")
-      setSuccess("Project submitted successfully.")
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -84,7 +83,7 @@ export function ProjectSubmissionForm({
   }
 
   return (
-    <section className="mt-8 rounded-xl border border-[var(--hg-border)] bg-[var(--hg-surface)] p-5">
+    <section className="mt-8 rounded-2xl border border-[var(--hg-border)] bg-[var(--hg-surface)] p-4 sm:p-5">
       <h2 className="text-[15px] font-semibold text-[var(--hg-text)]">
         Submit your project
       </h2>
@@ -100,7 +99,7 @@ export function ProjectSubmissionForm({
             maxLength={100}
             value={teamName}
             onChange={(event) => setTeamName(event.target.value)}
-            className="h-10 rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[13px] text-[var(--hg-text)] outline-none focus:border-[var(--hg-cyan)]/50"
+            className="h-10 w-full min-w-0 rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[13px] text-[var(--hg-text)] outline-none transition-colors focus:border-[var(--hg-cyan)]/50 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
           />
         </label>
 
@@ -111,14 +110,16 @@ export function ProjectSubmissionForm({
         <label className="grid gap-1.5 text-[11px] font-semibold text-[var(--hg-muted)]">
           Project ZIP file
           <input
+            id="project-zip-file"
             type="file"
             accept=".zip,application/zip,application/x-zip-compressed"
             required
             onChange={handleZipChange}
-            className="sr-only"
+            className="sr-only peer"
           />
-          <span className="inline-flex h-10 w-fit cursor-pointer items-center rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[12px] font-semibold text-[var(--hg-text)] transition-colors hover:border-[var(--hg-cyan)]/50">
-            Choose ZIP file
+          <span className="inline-flex h-10 w-full cursor-pointer items-center justify-between rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[12px] font-semibold text-[var(--hg-text)] transition-colors hover:border-[var(--hg-cyan)]/50 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--hg-cyan)]/30">
+            <span>Choose ZIP file</span>
+            <span className="text-[11px] font-medium text-[var(--hg-dim)]">Up to 50 MB</span>
           </span>
           <span aria-live="polite" className="text-[11px] font-normal text-[var(--hg-dim)]">
             {projectZipFile?.name || "No file selected"}
@@ -134,7 +135,7 @@ export function ProjectSubmissionForm({
             value={githubRepoUrl}
             onChange={(event) => setGithubRepoUrl(event.target.value)}
             placeholder="https://github.com/team/project"
-            className="h-10 rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[13px] text-[var(--hg-text)] outline-none placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50"
+            className="h-10 w-full min-w-0 rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[13px] text-[var(--hg-text)] outline-none placeholder:text-[var(--hg-dim)] transition-colors focus:border-[var(--hg-cyan)]/50 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
           />
         </label>
 

@@ -105,7 +105,8 @@ export async function hostHackathon(formData: FormData): Promise<ActionResult> {
   if (Number.isNaN(parsed.getTime())) return { error: "Pick a valid start date." }
 
   const parsedEnd = new Date(`${enddate}T09:00:00`)
-  if (Number.isNaN(parsed.getTime())) return {error: "Pick a valid end date."}
+  if (Number.isNaN(parsedEnd.getTime())) return { error: "Pick a valid end date." }
+  if (parsedEnd < parsed) return { error: "The end date must be on or after the start date." }
 
   await prisma.hackathon.create({
     data: {
