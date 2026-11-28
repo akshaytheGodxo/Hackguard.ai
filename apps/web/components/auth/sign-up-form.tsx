@@ -1,42 +1,48 @@
 "use client"
 
-import { useState, useTransition } from "react"
-import { Field } from "@base-ui/react/field"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, LockKeyhole, Mail, UserRound } from "lucide-react"
 import Link from "next/link"
-import { signUp } from "@/lib/actions"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useState, useTransition } from "react"
 import { PasswordInput } from "@/components/auth/password-input"
 import { SocialButtons } from "@/components/auth/social-buttons"
+import { FormAlert, FormField } from "@/components/ui/app-ui"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { signUp } from "@/lib/actions"
 
 const STRENGTH_LABELS = ["Too weak", "Weak", "Weak", "Fair", "Strong", "Very strong"]
 const STRENGTH_COLORS = ["#ee847a", "#ee847a", "#e9c975", "#e9c975", "#83d5b1", "#83d5b1"]
 
-function scorePassword(pw: string): number {
+const inputClass =
+  "h-10 border-[var(--hg-border-strong)] bg-[var(--hg-surface)] text-[13px] text-[var(--hg-text)] placeholder:text-[var(--hg-dim)] focus-visible:border-[var(--hg-cyan)]/60 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
+
+function scorePassword(password: string): number {
   let score = 0
-  if (pw.length >= 8) score++
-  if (pw.length >= 12) score++
-  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++
-  if (/\d/.test(pw)) score++
-  if (/[^A-Za-z0-9]/.test(pw)) score++
+  if (password.length >= 8) score++
+  if (password.length >= 12) score++
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++
+  if (/\d/.test(password)) score++
+  if (/[^A-Za-z0-9]/.test(password)) score++
   return score
 }
 
 function PasswordStrengthMeter({ password }: { password: string }) {
   if (password.length === 0) {
-    return <p className="mt-2 text-[10px] text-[var(--hg-dim)]">Use 8+ characters with a mix of letters, numbers and symbols.</p>
+    return (
+      <p className="mt-2 text-[10px] text-[var(--hg-dim)]">
+        Use 8+ characters with a mix of letters, numbers and symbols.
+      </p>
+    )
   }
   const score = scorePassword(password)
   return (
     <div className="mt-2.5">
-      <div className="grid grid-cols-5 gap-1.5">
-        {Array.from({ length: 5 }).map((_, i) => (
+      <div className="grid grid-cols-5 gap-1.5" aria-hidden="true">
+        {Array.from({ length: 5 }).map((_, index) => (
           <span
-            key={i}
+            key={index}
             className="h-1 rounded-full transition-colors duration-200"
-            style={{ background: i < score ? STRENGTH_COLORS[score] : "var(--hg-border-strong)" }}
+            style={{ background: index < score ? STRENGTH_COLORS[score] : "var(--hg-border-strong)" }}
           />
         ))}
       </div>
@@ -54,9 +60,9 @@ export function SignUpForm() {
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const data = new FormData(e.currentTarget)
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
 
     if (!EMAIL_PATTERN.test(String(data.get("email") ?? "").trim())) {
       setError("Enter a valid email address.")
@@ -88,42 +94,53 @@ export function SignUpForm() {
 
       <div className="auth-divider">or sign up with email</div>
 
-      <Field.Root className="auth-field">
-        <Label className="text-[11px] font-semibold text-[var(--hg-text)]">Full name</Label>
-        <Input
-          type="text"
-          name="name"
-          placeholder="Ada Lovelace"
-          required
-          autoComplete="name"
-          className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-surface)] text-[13px] text-[var(--hg-text)] placeholder:text-[var(--hg-dim)]"
-        />
-      </Field.Root>
+      <div className="space-y-4">
+        <FormField label="Full name" htmlFor="sign-up-name" required>
+          <div className="relative">
+            <UserRound className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-[var(--hg-dim)]" />
+            <Input
+              id="sign-up-name"
+              type="text"
+              name="name"
+              placeholder="Ada Lovelace"
+              required
+              autoComplete="name"
+              className={`${inputClass} pl-9`}
+            />
+          </div>
+        </FormField>
 
-      <Field.Root className="auth-field">
-        <Label className="text-[11px] font-semibold text-[var(--hg-text)]">Work email</Label>
-        <Input
-          type="email"
-          name="email"
-          placeholder="you@company.com"
-          required
-          autoComplete="email"
-          className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-surface)] text-[13px] text-[var(--hg-text)] placeholder:text-[var(--hg-dim)]"
-        />
-      </Field.Root>
+        <FormField label="Work email" htmlFor="sign-up-email" required>
+          <div className="relative">
+            <Mail className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-[var(--hg-dim)]" />
+            <Input
+              id="sign-up-email"
+              type="email"
+              name="email"
+              placeholder="you@company.com"
+              required
+              autoComplete="email"
+              className={`${inputClass} pl-9`}
+            />
+          </div>
+        </FormField>
 
-      <Field.Root className="auth-field">
-        <Label className="text-[11px] font-semibold text-[var(--hg-text)]">Password</Label>
-        <PasswordInput
-          name="password"
-          placeholder="Create a strong password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="border-[var(--hg-border-strong)] bg-[var(--hg-surface)] text-[var(--hg-text)] placeholder:text-[var(--hg-dim)]"
-        />
-        <PasswordStrengthMeter password={password} />
-      </Field.Root>
+        <FormField label="Password" htmlFor="sign-up-password" required>
+          <div className="relative">
+            <LockKeyhole className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-[var(--hg-dim)]" />
+            <PasswordInput
+              id="sign-up-password"
+              name="password"
+              placeholder="Create a strong password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className={`${inputClass} pl-9`}
+            />
+            <PasswordStrengthMeter password={password} />
+          </div>
+        </FormField>
+      </div>
 
       <label className="mt-4 inline-flex cursor-pointer items-start gap-2.5 text-[11px] leading-relaxed text-[var(--hg-muted)] transition-colors hover:text-[var(--hg-text)]">
         <input
@@ -132,24 +149,10 @@ export function SignUpForm() {
           required
           className="mt-0.5 size-3.5 shrink-0 cursor-pointer rounded border-[var(--hg-border-strong)] bg-transparent accent-[var(--hg-cyan)]"
         />
-        <span>
-          I agree to the{" "}
-          <a href="#" className="font-medium text-[var(--hg-cyan)] hover:underline">
-            Terms of Service
-          </a>{" "}
-          and{" "}
-          <a href="#" className="font-medium text-[var(--hg-cyan)] hover:underline">
-            Privacy Policy
-          </a>
-          .
-        </span>
+        <span>I agree to the HackGuard AI Terms of Service and Privacy Policy.</span>
       </label>
 
-      {error && (
-        <p role="alert" className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-[12px] font-medium text-red-400">
-          {error}
-        </p>
-      )}
+      {error ? <FormAlert className="mt-4">{error}</FormAlert> : null}
 
       <Button
         type="submit"

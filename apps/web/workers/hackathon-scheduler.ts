@@ -1,3 +1,4 @@
+import "dotenv/config"
 import { prisma } from "@/lib/prisma";
 import { enqueueHackathonAnalysis } from "@/lib/queue/analysis-queue";
 
@@ -87,7 +88,8 @@ async function checkExpiredHackathons() {
 
 async function startScheduler() {
     console.log("Hackathon scheduler started");
-
+    const db_url = process.env.DATABASE_URL
+    console.log("DATABASE URL:", db_url);
     await checkExpiredHackathons();
 
     setInterval(async () => {

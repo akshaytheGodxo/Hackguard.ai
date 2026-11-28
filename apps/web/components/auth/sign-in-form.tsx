@@ -1,26 +1,28 @@
 "use client"
 
-import { Field } from "@base-ui/react/field"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, LockKeyhole, Mail } from "lucide-react"
 import Link from "next/link"
 import { useState, useTransition } from "react"
+import { PasswordInput } from "@/components/auth/password-input"
+import { RoleSelector } from "@/components/auth/role-selector"
+import { SocialButtons } from "@/components/auth/social-buttons"
+import { FormAlert, FormField } from "@/components/ui/app-ui"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { PasswordInput } from "@/components/auth/password-input"
-import { SocialButtons } from "@/components/auth/social-buttons"
-import { RoleSelector } from "@/components/auth/role-selector"
 import { signIn } from "@/lib/actions"
 import type { Role } from "@/lib/auth/roles"
+
+const inputClass =
+  "h-10 border-[var(--hg-border-strong)] bg-[var(--hg-surface)] text-[13px] text-[var(--hg-text)] placeholder:text-[var(--hg-dim)] focus-visible:border-[var(--hg-cyan)]/60 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
 
 export function SignInForm() {
   const [error, setError] = useState<string | null>(null)
   const [role, setRole] = useState<Role>("candidate")
   const [pending, startTransition] = useTransition()
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const data = new FormData(e.currentTarget)
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
     data.set("role", role)
     setError(null)
     startTransition(async () => {
@@ -45,49 +47,46 @@ export function SignInForm() {
 
       <div className="auth-divider">or continue with email</div>
 
-      <Field.Root className="auth-field">
-        <Label className="text-[11px] font-semibold text-[var(--hg-text)]">Email</Label>
-        <Input
-          type="email"
-          name="email"
-          placeholder="you@company.com"
-          required
-          autoComplete="email"
-          className="h-10 border-[var(--hg-border-strong)] bg-[var(--hg-surface)] text-[13px] text-[var(--hg-text)] placeholder:text-[var(--hg-dim)]"
-        />
-      </Field.Root>
+      <div className="space-y-4">
+        <FormField label="Email" htmlFor="sign-in-email" required>
+          <div className="relative">
+            <Mail className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-[var(--hg-dim)]" />
+            <Input
+              id="sign-in-email"
+              type="email"
+              name="email"
+              placeholder="you@company.com"
+              required
+              autoComplete="email"
+              className={`${inputClass} pl-9`}
+            />
+          </div>
+        </FormField>
 
-      <Field.Root className="auth-field">
-        <div className="flex items-center justify-between">
-          <Label className="text-[11px] font-semibold text-[var(--hg-text)]">Password</Label>
-          <a href="#" className="text-[10px] font-medium text-[var(--hg-dim)] transition-colors hover:text-[var(--hg-cyan)]">
-            Forgot password?
-          </a>
-        </div>
-        <PasswordInput
-          name="password"
-          placeholder="••••••••••••"
-          required
-          className="border-[var(--hg-border-strong)] bg-[var(--hg-surface)] text-[var(--hg-text)] placeholder:text-[var(--hg-dim)]"
-        />
-      </Field.Root>
-
-      <div className="mt-4 flex items-center justify-between">
-        <label className="inline-flex cursor-pointer items-center gap-2 text-[11px] text-[var(--hg-muted)] transition-colors hover:text-[var(--hg-text)]">
-          <input
-            type="checkbox"
-            name="remember"
-            className="size-3.5 cursor-pointer rounded border-[var(--hg-border-strong)] bg-transparent accent-[var(--hg-cyan)]"
-          />
-          Remember me
-        </label>
+        <FormField label="Password" htmlFor="sign-in-password" required>
+          <div className="relative">
+            <LockKeyhole className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-[var(--hg-dim)]" />
+            <PasswordInput
+              id="sign-in-password"
+              name="password"
+              placeholder="••••••••••••"
+              required
+              className={`${inputClass} pl-9`}
+            />
+          </div>
+        </FormField>
       </div>
 
-      {error && (
-        <p role="alert" className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-[12px] font-medium text-red-400">
-          {error}
-        </p>
-      )}
+      <label className="mt-4 inline-flex cursor-pointer items-center gap-2 text-[11px] text-[var(--hg-muted)] transition-colors hover:text-[var(--hg-text)]">
+        <input
+          type="checkbox"
+          name="remember"
+          className="size-3.5 cursor-pointer rounded border-[var(--hg-border-strong)] bg-transparent accent-[var(--hg-cyan)]"
+        />
+        Keep me signed in on this device
+      </label>
+
+      {error ? <FormAlert className="mt-4">{error}</FormAlert> : null}
 
       <Button
         type="submit"

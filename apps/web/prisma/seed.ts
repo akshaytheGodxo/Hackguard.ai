@@ -36,6 +36,7 @@ async function main() {
   async function upsertHackathon(input: {
     name: string
     date: Date
+    enddate: Date
     description: string
     status: "Live" | "Upcoming" | "Completed"
     participants: number
@@ -51,6 +52,7 @@ async function main() {
   const hackSphere = await upsertHackathon({
     name: "HackSphere 2026",
     date: new Date("2026-10-18T09:00:00"),
+    enddate: new Date("2026-10-19T21:00:00"),
     description: "A 36-hour global hackathon focused on AI safety and infrastructure.",
     status: "Live",
     participants: 342,
@@ -61,6 +63,7 @@ async function main() {
   await upsertHackathon({
     name: "NeuralHack Summer",
     date: new Date("2026-11-02T09:00:00"),
+    enddate: new Date("2026-11-03T18:00:00"),
     description: "Machine-learning build sprint for students and first-time hackers.",
     status: "Upcoming",
     participants: 128,
@@ -71,6 +74,7 @@ async function main() {
   await upsertHackathon({
     name: "Campus CodeStorm",
     date: new Date("2026-09-21T09:00:00"),
+    enddate: new Date("2026-09-22T18:00:00"),
     description: "On-campus competitive hackathon with sandboxed judging.",
     status: "Completed",
     participants: 96,
@@ -81,6 +85,7 @@ async function main() {
   await upsertHackathon({
     name: "Arena Clash 1v1",
     date: new Date("2026-10-19T18:00:00"),
+    enddate: new Date("2026-10-19T21:00:00"),
     description: "Head-to-head live coding battles — one round, one winner.",
     status: "Live",
     participants: 42,

@@ -1,6 +1,10 @@
 "use client"
 
+import { CheckCircle2, FileArchive, GitBranch, UploadCloud } from "lucide-react"
 import { useState, type ChangeEvent, type FormEvent } from "react"
+import { FormAlert, FormField } from "@/components/ui/app-ui"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 type Props = {
   hackathonId: string
@@ -9,6 +13,9 @@ type Props = {
   teamLeaderEmail: string
   githubRepoUrl?: string
 }
+
+const inputClass =
+  "h-10 w-full min-w-0 rounded-lg border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[13px] text-[var(--hg-text)] outline-none transition-colors placeholder:text-[var(--hg-dim)] focus:border-[var(--hg-cyan)]/50 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
 
 export function ProjectSubmissionForm({
   hackathonId,
@@ -73,9 +80,7 @@ export function ProjectSubmissionForm({
       setSuccess("Project submitted successfully.")
     } catch (submitError) {
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Project submission failed.",
+        submitError instanceof Error ? submitError.message : "Project submission failed.",
       )
     } finally {
       setPending(false)
@@ -83,80 +88,100 @@ export function ProjectSubmissionForm({
   }
 
   return (
-    <section className="mt-8 rounded-2xl border border-[var(--hg-border)] bg-[var(--hg-surface)] p-4 sm:p-5">
-      <h2 className="text-[15px] font-semibold text-[var(--hg-text)]">
-        Submit your project
-      </h2>
-      <p className="mt-1 text-[12px] text-[var(--hg-dim)]">
-        Upload your project as a ZIP file (up to 50 MB) and provide your GitHub repository link.
-      </p>
+    <section className="mt-8 rounded-2xl border border-[var(--hg-border)] bg-[var(--hg-surface)] p-4 shadow-[var(--hg-shadow)] sm:p-5">
+      <div className="flex items-start gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-[var(--hg-cyan)]/30 bg-[var(--hg-cyan)]/10 text-[var(--hg-cyan)]">
+          <UploadCloud className="size-4" />
+        </span>
+        <div>
+          <h2 className="text-[15px] font-semibold text-[var(--hg-text)]">Submit your project</h2>
+          <p className="mt-1 text-[12px] leading-relaxed text-[var(--hg-dim)]">
+            Upload your project as a ZIP file (up to 50 MB) and link the source repository.
+          </p>
+        </div>
+      </div>
 
-      <form className="mt-4 grid gap-4" onSubmit={handleSubmit}>
-        <label className="grid gap-1.5 text-[11px] font-semibold text-[var(--hg-muted)]">
-          Team name
-          <input
+      <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        <FormField label="Team name" htmlFor="submission-team-name" required>
+          <Input
+            id="submission-team-name"
             required
             maxLength={100}
             value={teamName}
             onChange={(event) => setTeamName(event.target.value)}
-            className="h-10 w-full min-w-0 rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[13px] text-[var(--hg-text)] outline-none transition-colors focus:border-[var(--hg-cyan)]/50 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
+            placeholder="Byte Builders"
+            className={inputClass}
           />
-        </label>
+          <span className="text-[11px] text-[var(--hg-dim)]">
+            Team leader: <strong className="font-medium text-[var(--hg-muted)]">{teamLeaderEmail}</strong>
+          </span>
+        </FormField>
 
-        <p className="text-[11px] text-[var(--hg-dim)]">
-          Team leader email: <span className="text-[var(--hg-muted)]">{teamLeaderEmail}</span>
-        </p>
-
-        <label className="grid gap-1.5 text-[11px] font-semibold text-[var(--hg-muted)]">
-          Project ZIP file
+        <FormField label="Project ZIP" htmlFor="project-zip-file" required>
+          <label
+            htmlFor="project-zip-file"
+            className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-[var(--hg-border-strong)] bg-[var(--hg-bg)]/60 px-4 py-3 transition-colors hover:border-[var(--hg-cyan)]/50 focus-within:border-[var(--hg-cyan)]/50"
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/5 text-[var(--hg-cyan)]">
+                <FileArchive className="size-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[12px] font-semibold text-[var(--hg-text)]">
+                  {projectZipFile?.name || "Choose a ZIP file"}
+                </span>
+                <span className="block text-[11px] text-[var(--hg-dim)]">
+                  {projectZipFile
+                    ? `${(projectZipFile.size / 1024 / 1024).toFixed(1)} MB selected`
+                    : "Up to 50 MB · .zip only"}
+                </span>
+              </span>
+            </span>
+            <span className="rounded-md border border-[var(--hg-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--hg-muted)]">
+              Browse
+            </span>
+          </label>
           <input
             id="project-zip-file"
             type="file"
             accept=".zip,application/zip,application/x-zip-compressed"
             required
             onChange={handleZipChange}
-            className="sr-only peer"
+            className="sr-only"
           />
-          <span className="inline-flex h-10 w-full cursor-pointer items-center justify-between rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[12px] font-semibold text-[var(--hg-text)] transition-colors hover:border-[var(--hg-cyan)]/50 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--hg-cyan)]/30">
-            <span>Choose ZIP file</span>
-            <span className="text-[11px] font-medium text-[var(--hg-dim)]">Up to 50 MB</span>
-          </span>
-          <span aria-live="polite" className="text-[11px] font-normal text-[var(--hg-dim)]">
-            {projectZipFile?.name || "No file selected"}
-          </span>
-        </label>
+        </FormField>
 
-        <label className="grid gap-1.5 text-[11px] font-semibold text-[var(--hg-muted)]">
-          GitHub repository
-          <input
-            required
-            type="url"
-            maxLength={2_048}
-            value={githubRepoUrl}
-            onChange={(event) => setGithubRepoUrl(event.target.value)}
-            placeholder="https://github.com/team/project"
-            className="h-10 w-full min-w-0 rounded-md border border-[var(--hg-border-strong)] bg-[var(--hg-bg)] px-3 text-[13px] text-[var(--hg-text)] outline-none placeholder:text-[var(--hg-dim)] transition-colors focus:border-[var(--hg-cyan)]/50 focus-visible:ring-2 focus-visible:ring-[var(--hg-cyan)]/15"
-          />
-        </label>
+        <FormField label="GitHub repository" htmlFor="submission-repo" required>
+          <div className="relative">
+            <GitBranch className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-[var(--hg-dim)]" />
+            <Input
+              id="submission-repo"
+              required
+              type="url"
+              maxLength={2_048}
+              value={githubRepoUrl}
+              onChange={(event) => setGithubRepoUrl(event.target.value)}
+              placeholder="https://github.com/team/project"
+              className={`${inputClass} pl-9`}
+            />
+          </div>
+        </FormField>
 
-        {error && (
-          <p role="alert" className="text-[12px] font-medium text-red-400">
-            {error}
-          </p>
-        )}
-        {success && (
-          <p role="status" className="text-[12px] font-medium text-emerald-400">
+        {error ? <FormAlert>{error}</FormAlert> : null}
+        {success ? (
+          <FormAlert tone="success">
+            <CheckCircle2 className="mr-1.5 inline size-3.5" />
             {success}
-          </p>
-        )}
+          </FormAlert>
+        ) : null}
 
-        <button
+        <Button
           type="submit"
           disabled={pending}
-          className="h-10 rounded-lg bg-[var(--hg-cyan)] px-4 text-[12px] font-bold text-[#101426] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="hg-gradient-bg h-10 w-full rounded-lg! text-[12px] font-bold text-[#101426] hover:brightness-105"
         >
           {pending ? "Submitting…" : "Submit project"}
-        </button>
+        </Button>
       </form>
     </section>
   )

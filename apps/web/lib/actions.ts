@@ -314,7 +314,7 @@ export async function addProblem(
   if (hackathon.organizerId !== session.userId) return { error: "You don't own this hackathon." }
   if (hackathon.type !== "live") return { error: "Problems can only be added to live hackathons." }
 
-  const duplicate = await prisma.problem.findUnique({ where: { name, hackathonId } })
+  const duplicate = await prisma.problem.findFirst({ where: { name, hackathonId } })
   if (duplicate) return { error: "A problem with that name already exists in this event." }
 
   await prisma.problem.create({
